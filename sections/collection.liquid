@@ -1,0 +1,249 @@
+{% comment %} 
+    This section is used in the collection template to render collection page
+    listing all products within a collection.
+   
+    https://shopify.dev/docs/storefronts/themes/architecture/templates/collection 
+{% endcomment %}
+
+{{ 'collection.css' | asset_url | stylesheet_tag }}
+
+<h1>{{ collection.title }}</h1>
+
+<section class="sv-collection-wrapper">
+
+  <aside class="sv-filter-panel">
+    <accordion-tab open>
+      <h3 data-header class="sv-filter-header">
+        Product Type
+        <span class="sv-toggle-icon">−</span>
+      </h3>
+      <div data-content class="sv-filter-body">
+        <div class="sv-search-wrap">
+          <input
+            type="text"
+            class="sv-category-search"
+            placeholder="Find a category"
+            aria-label="Search categories">
+          <span class="sv-search-icon"><img src="{{'search.svg' |  asset_url }}" alt="search icon"></span>
+        </div>
+        <ul class="sv-checkbox-list sv-category-list">
+          <li>
+            <label><input type="checkbox" value="accessories"> Accessories (21)</label>
+          </li>
+          <li>
+            <label><input type="checkbox" value="bags"> Bags (49)</label>
+          </li>
+          <li>
+            <label><input type="checkbox" value="goods"> Goods (47)</label>
+          </li>
+          <li>
+            <label><input type="checkbox" value="pants"> Pants (16)</label>
+          </li>
+          <li>
+            <label><input type="checkbox" value="shoes"> Shoes (33)</label>
+          </li>
+          <li>
+            <label><input type="checkbox" value="sweaters"> Sweaters (19)</label>
+          </li>
+          {%- comment -%} Items beyond the first 6 are hidden initially {%- endcomment -%}
+          <li class="sv-extra-item sv-hidden">
+            <label><input type="checkbox" value="shirts"> Shirts (22)</label>
+          </li>
+          <li class="sv-extra-item sv-hidden">
+            <label><input type="checkbox" value="jackets"> Jackets (11)</label>
+          </li>
+          <li class="sv-extra-item sv-hidden">
+            <label><input type="checkbox" value="hats"> Hats (8)</label>
+          </li>
+        </ul>
+        <button class="sv-show-more-btn" data-sv-show-more="sv-extra-item">+ 13 More</button>
+      </div>
+    </accordion-tab>
+
+    <accordion-tab open>
+      <h3 data-header class="sv-filter-header">
+        Price
+        <span class="sv-toggle-icon">−</span>
+      </h3>
+      <div data-content class="sv-filter-body">
+        <div class="sv-price-slider-wrap">
+          <div class="sv-price-track">
+            <div class="sv-price-fill" id="sv-price-fill"></div>
+            <div class="sv-price-thumb sv-price-thumb--left" id="sv-thumb-min"></div>
+            <div class="sv-price-thumb sv-price-thumb--right" id="sv-thumb-max"></div>
+          </div>
+        </div>
+        <div class="sv-price-inputs">
+          <div class="sv-price-field">
+            <span>$</span>
+            <input
+              type="text"
+              id="sv-price-min"
+              value="0"
+              aria-label="Minimum price">
+          </div>
+          <span class="sv-price-sep">To</span>
+          <div class="sv-price-field">
+            <span>$</span>
+            <input
+              type="text"
+              id="sv-price-max"
+              value="3000"
+              aria-label="Maximum price">
+          </div>
+        </div>
+      </div>
+    </accordion-tab>
+
+    <accordion-tab open>
+      <h3 data-header class="sv-filter-header">
+        Size
+        <span class="sv-toggle-icon">−</span>
+      </h3>
+      <div data-content class="sv-filter-body">
+        <ul class="sv-checkbox-list">
+          <li>
+            <label><input type="checkbox" value="s"> S (86)</label>
+          </li>
+          <li>
+            <label><input type="checkbox" value="m"> M (33)</label>
+          </li>
+          <li>
+            <label><input type="checkbox" value="l"> L (37)</label>
+          </li>
+          <li>
+            <label><input type="checkbox" value="xl"> XL (29)</label>
+          </li>
+          <li>
+            <label><input type="checkbox" value="xxl"> XXL (32)</label>
+          </li>
+        </ul>
+      </div>
+    </accordion-tab>
+
+    <accordion-tab open>
+      <h3 data-header class="sv-filter-header">
+        Product Status
+        <span class="sv-toggle-icon">−</span>
+      </h3>
+      <div data-content class="sv-filter-body">
+        <ul class="sv-checkbox-list">
+          <li>
+            <label><input type="checkbox" value="in_stock"> In stock</label>
+          </li>
+          <li>
+            <label><input type="checkbox" value="out_stock"> Out of Stock</label>
+          </li>
+          <li>
+            <label><input type="checkbox" value="on_sale"> On sale</label>
+          </li>
+        </ul>
+      </div>
+    </accordion-tab>
+
+  </aside>
+
+
+  <div class="sv-products-section">
+
+    <div class="sv-toolbar">
+      <div class="sv-toolbar-left">
+        <select class="sv-sort-select" aria-label="Sort products">
+          <option value="">Default Sorting</option>
+          <option value="price-asc">Price: Low to High</option>
+          <option value="price-desc">Price: High to Low</option>
+          <option value="newest">Newest First</option>
+        </select>
+
+        <div
+          class="sv-view-switcher"
+          role="group"
+          aria-label="Grid layout">
+          <button
+            class="sv-view-btn"
+            data-sv-grid="sv-grid-list"
+            aria-label="List view">
+            <img src="{{ 'list.svg' | asset_url }}" alt="List">
+          </button>
+          <button
+            class="sv-view-btn"
+            data-sv-grid="sv-grid-2"
+            aria-label="2 columns">
+            <img src="{{ '2col.svg' | asset_url }}" alt="2 columns">
+          </button>
+          <button
+            class="sv-view-btn"
+            data-sv-grid="sv-grid-3"
+            aria-label="3 columns">
+            <img src="{{ '3col.svg' | asset_url }}" alt="3 columns">
+          </button>
+          <button
+            class="sv-view-btn sv-active"
+            data-sv-grid="sv-grid-4"
+            aria-label="4 columns">
+            <img src="{{ '4col.svg' | asset_url }}" alt="4 columns">
+          </button>
+        </div>
+      </div>
+
+      <div class="sv-toolbar-right">
+        <span>Show</span>
+        <select class="sv-per-page-select" aria-label="Products per page">
+          <option value="12">12</option>
+          <option value="24">24</option>
+          <option value="48">48</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="sv-product-grid sv-grid-4" id="sv-product-grid">
+      {%- for product in collections.all.products -%}
+        <div class="sv-product-card">
+          <div class="sv-card-image">
+            {% if product.featured_image %}
+              <img
+                src="{{ product.featured_image | image_url: width: 300 }}"
+                alt="{{ product.title | escape }}"
+                loading="lazy"
+                width="300"
+                height="300">
+            {% endif %}
+          </div>
+          <div class="sv-card-info">
+            <div>
+              <h4 class="sv-card-title">{{ product.title }}</h4>
+              <div class="sv-card-price">
+                {{ product.price | money }}
+                {% if product.compare_at_price > product.price %}
+                  <span class="sv-price-original">{{ product.compare_at_price | money }}</span>
+                {% endif %}
+              </div>
+            </div>
+            <div>
+              <img src="" alt="">4.5 (189)</div>
+          </div>
+
+        </div>
+      {%- endfor -%}
+    </div>
+
+    {%- comment -%}  Load More  {%- endcomment -%}
+    <div class="sv-load-more-wrap">
+      <p class="sv-progress-label">Showing 12 of 15 items</p>
+      <div class="sv-progress-bar">
+        <div class="sv-progress-bar-fill"></div>
+      </div>
+      <button class="sv-load-more-btn">LOAD MORE</button>
+    </div>
+
+  </div>
+</section>
+<script src="{{ 'collection.js' | asset_url }}" defer="defer"></script>
+
+
+{% schema %}
+  {
+    "name": "t:general.collection",
+    "settings": []
+  }
+{% endschema %}
