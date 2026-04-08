@@ -7,15 +7,14 @@
   box-sizing: border-box;
 }
 
-/* ---- Filter Panel ---- */
 .sv-filter-panel {
-  flex: 0 0 220px;
-  min-width: 220px;
+  flex: 0 0 20%;
+  min-width: 20%;
   background: #fff;
   border-radius: 12px;
   padding: 1.5rem 1.25rem;
   align-self: flex-start;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.05);
+  box-shadow: 0 1px 4px #0000000d;
 }
 
 accordion-tab {
@@ -30,18 +29,19 @@ accordion-tab:last-of-type {
   padding-bottom: 0;
 }
 
-/* Filter Group Header */
 .sv-filter-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
   margin: 0;
-  font-size: 16px;
-  font-weight: 600;
+  font-size: 20px;
+  font-weight: 500;
   color: #192739;
   cursor: pointer;
+  -webkit-user-select: none;
   user-select: none;
 }
+
 .sv-filter-header .sv-toggle-icon {
   font-size: 1.3rem;
   font-weight: 300;
@@ -75,18 +75,20 @@ accordion-tab[open] .sv-filter-body {
   position: relative;
   margin-bottom: 0.75rem;
 }
+
 .sv-search-wrap input {
   width: 100%;
   padding: 0.45rem 2rem 0.45rem 0.75rem;
   border: 1px solid #e0e0e0;
   border-radius: 6px;
-  font-size: 0.82rem;
+  font-size: 14px;
   color: #333;
   background: #fafafa;
   box-sizing: border-box;
   outline: none;
   transition: border-color 0.2s;
 }
+
 .sv-search-wrap input:focus {
   border-color: #aaa;
   background: #fff;
@@ -140,10 +142,9 @@ accordion-tab[open] .sv-filter-body {
   display: flex;
   align-items: center;
   gap: 0.6rem;
-  font-size: 0.84rem;
+  font-size: 16px;
   color: #333;
   cursor: pointer;
-  line-height: 1.4;
 }
 .sv-checkbox-list label a,
 .sv-checkbox-list label span {
@@ -175,11 +176,11 @@ accordion-tab[open] .sv-filter-body {
   color: #1a1e2b;
 }
 
-/* ---- Price Range Slider ---- */
 .sv-price-slider-wrap {
   margin: 0.75rem 0 1rem;
-  padding: 0 8px;
+  padding: 0 11px;
 }
+
 .sv-price-track {
   position: relative;
   height: 3px;
@@ -258,12 +259,13 @@ accordion-tab[open] .sv-filter-body {
   flex-shrink: 0;
 }
 
-/* ================================================================
+/* ===========================================================
    COLOR SWATCHES
    Each swatch is a rounded button filled with the colour value.
    The hidden checkbox drives the selected state; the visible
    <span class="sv-color-swatch"> receives the ring via CSS.
-================================================================ */
+============================================================== */
+
 .sv-color-swatches {
   display: flex;
   flex-wrap: wrap;
@@ -363,7 +365,6 @@ accordion-tab[open] .sv-filter-body {
   line-height: 1.4;
 }
 
-/* Small colour dot inside a colour chip */
 .sv-chip-swatch {
   display: inline-block;
   width: 10px;
@@ -389,7 +390,6 @@ accordion-tab[open] .sv-filter-body {
   color: #fff;
 }
 
-/* ---- Toolbar ---- */
 .sv-toolbar {
   display: flex;
   justify-content: space-between;
@@ -398,9 +398,11 @@ accordion-tab[open] .sv-filter-body {
   flex-wrap: wrap;
   gap: 0.75rem;
 }
+
 .sv-toolbar-left {
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
   gap: 0.75rem;
 }
 
@@ -419,8 +421,85 @@ accordion-tab[open] .sv-filter-body {
   cursor: pointer;
   outline: none;
 }
+
 .sv-sort-select:focus {
-  border-color: #999;
+  border-color: #338cff21;
+}
+
+.sv-custom-select-wrapper {
+  position: relative;
+  width: 260px;
+  font-family: inherit;
+  user-select: none;
+}
+
+.sv-custom-select-trigger {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background-color: #fff;
+  border-radius: 8px;
+  padding: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  color: #68778d;
+  cursor: pointer;
+  border: 1px solid #e0e0e0;
+  transition: border-color 0.2s ease;
+}
+
+/* Trigger focus/open state */
+.sv-custom-select.open .sv-custom-select-trigger {
+  border-color: #338cff21;
+}
+
+.sv-custom-options {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  background-color: #ffffff;
+  border-radius: 8px;
+  margin-top: 8px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+  padding: 8px 0;
+  z-index: 99;
+
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(-10px);
+  pointer-events: none;
+  transition: all 0.2s ease;
+}
+
+.sv-custom-select.open .sv-custom-options {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0);
+  pointer-events: all;
+}
+
+.sv-custom-option {
+  display: block;
+  padding: 8px;
+  font-size: 14px;
+  color: #213143;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.sv-custom-option:hover,
+.sv-custom-option.selected {
+  background-color: #e8f0fe;
+  color: #213143;
+}
+
+/* Rotate the arrow when open */
+.sv-custom-select-trigger svg {
+  transition: transform 0.3s ease;
+}
+.sv-custom-select.open .sv-custom-select-trigger svg {
+  transform: rotate(180deg);
 }
 
 .sv-view-switcher {

@@ -33,9 +33,6 @@
   }
   customElements.define("accordion-tab", AccordionTab);
 
-  /* ================================================================
-     DATA — parse embedded JSON product catalogue
-  ================================================================ */
   let ALL_PRODUCTS = [];
   const dataEl = document.getElementById("sv-all-products-data");
   if (dataEl) {
@@ -124,7 +121,7 @@
       panel.insertBefore(createAccordionTab("Size", ul), anchor);
     }
 
-    /* --- Color filter (only if colors exist in store) --- */
+    /*  Color filter (only if colors exist in store)  */
     if (allColors.length > 0) {
       const wrap = document.createElement("div");
       wrap.className = "sv-color-swatches";
@@ -142,7 +139,6 @@
       panel.insertBefore(createAccordionTab("Color", wrap), anchor);
     }
 
-    /* Re-attach events to the newly injected checkboxes */
     attachCheckboxEvents();
   })();
 
@@ -187,6 +183,54 @@
       if (g === "status") cb.checked = state.status.includes(v);
     });
   }
+
+  document.addEventListener("DOMContentLoaded", function () {
+    const customSelects = document.querySelectorAll(".sv-custom-select");
+
+    customSelects.forEach((wrapper) => {
+      const trigger = wrapper.querySelector(".sv-custom-select-trigger");
+      const triggerText = trigger.querySelector("span");
+      const options = wrapper.querySelectorAll(".sv-custom-option");
+      // Connect to your existing hidden select
+      const nativeSelect = document.getElementById("sv-sort-select");
+
+      // Toggle dropdown open/close
+      trigger.addEventListener("click", function (e) {
+        e.stopPropagation();
+        wrapper.classList.toggle("open");
+      });
+
+      // Handle option clicks
+      options.forEach((option) => {
+        option.addEventListener("click", function (e) {
+          e.stopPropagation();
+
+          // 1. Update the visual trigger text
+          triggerText.textContent = this.textContent;
+
+          // 2. Remove 'selected' class from all, add to clicked
+          options.forEach((opt) => opt.classList.remove("selected"));
+          this.classList.add("selected");
+
+          // 3. Update the hidden native select value
+          nativeSelect.value = this.getAttribute("data-value");
+
+          // 4. Fire the 'change' event so your collection.js script triggers the sorting!
+          nativeSelect.dispatchEvent(new Event("change"));
+
+          // 5. Close the dropdown
+          wrapper.classList.remove("open");
+        });
+      });
+
+      // Close dropdown if clicking outside of it
+      document.addEventListener("click", function (e) {
+        if (!wrapper.contains(e.target)) {
+          wrapper.classList.remove("open");
+        }
+      });
+    });
+  });
 
   function getFilteredProducts() {
     return ALL_PRODUCTS.filter(function (p) {
