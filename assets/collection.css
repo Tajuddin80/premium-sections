@@ -7,9 +7,10 @@
   box-sizing: border-box;
 }
 
+/* ---- Filter Panel ---- */
 .sv-filter-panel {
-  flex: 0 0 200px;
-  min-width: 20%;
+  flex: 0 0 220px;
+  min-width: 220px;
   background: #fff;
   border-radius: 12px;
   padding: 1.5rem 1.25rem;
@@ -35,14 +36,12 @@ accordion-tab:last-of-type {
   justify-content: space-between;
   align-items: center;
   margin: 0;
-  font-size: 20px;
-  font-weight: 500;
-  color: #192739f0;
+  font-size: 16px;
+  font-weight: 600;
+  color: #192739;
   cursor: pointer;
-  -webkit-user-select: none;
   user-select: none;
 }
-
 .sv-filter-header .sv-toggle-icon {
   font-size: 1.3rem;
   font-weight: 300;
@@ -51,8 +50,6 @@ accordion-tab:last-of-type {
   display: inline-block;
   transition: transform 0.25s ease;
 }
-
-/* Rotate icon when closed (no [open]) */
 accordion-tab:not([open]) .sv-toggle-icon {
   transform: rotate(90deg);
 }
@@ -73,14 +70,14 @@ accordion-tab[open] .sv-filter-body {
   margin-top: 1rem;
 }
 
-/* Category Search Input */
+/* Category Search */
 .sv-search-wrap {
   position: relative;
-  margin-bottom: 0.9rem;
+  margin-bottom: 0.75rem;
 }
 .sv-search-wrap input {
   width: 100%;
-  padding: 0.5rem 2rem 0.5rem 0.75rem;
+  padding: 0.45rem 2rem 0.45rem 0.75rem;
   border: 1px solid #e0e0e0;
   border-radius: 6px;
   font-size: 0.82rem;
@@ -99,9 +96,35 @@ accordion-tab[open] .sv-filter-body {
   right: 8px;
   top: 50%;
   transform: translateY(-50%);
-  font-size: 0.85rem;
-  color: #aaa;
   pointer-events: none;
+}
+.sv-search-icon img {
+  width: 14px;
+  height: 14px;
+  opacity: 0.4;
+  display: block;
+}
+
+/* ---- Scrollable Category List — thin rod scrollbar ---- */
+.sv-category-list {
+  max-height: 168px;
+  overflow-y: scroll;
+  padding-right: 8px;
+  scrollbar-width: thin;
+  scrollbar-color: #d0d0d0 transparent;
+}
+.sv-category-list::-webkit-scrollbar {
+  width: 3px;
+}
+.sv-category-list::-webkit-scrollbar-track {
+  background: transparent;
+}
+.sv-category-list::-webkit-scrollbar-thumb {
+  background: #d0d0d0;
+  border-radius: 99px;
+}
+.sv-category-list::-webkit-scrollbar-thumb:hover {
+  background: #aaa;
 }
 
 /* Checkbox List */
@@ -111,64 +134,39 @@ accordion-tab[open] .sv-filter-body {
   margin: 0;
 }
 .sv-checkbox-list li {
-  margin-bottom: 0.65rem;
+  margin-bottom: 0.6rem;
 }
 .sv-checkbox-list label {
   display: flex;
   align-items: center;
   gap: 0.6rem;
-  font-size: 0.85rem;
+  font-size: 0.84rem;
   color: #333;
   cursor: pointer;
   line-height: 1.4;
 }
+.sv-checkbox-list label a,
+.sv-checkbox-list label span {
+  text-decoration: none;
+  color: inherit;
+}
 .sv-checkbox-list input[type="checkbox"] {
-  width: 16px;
-  height: 16px;
+  width: 15px;
+  height: 15px;
   cursor: pointer;
   accent-color: #1a1e2b;
   flex-shrink: 0;
-}
-
-/* Scrollable category list */
-.sv-category-list {
-  max-height: 160px;
-  overflow-y: scroll;
-  scrollbar-width: thin;
-  scrollbar-color: #c0c0c0 #f0f0f0;
-  padding-right: 2px;
-}
-
-::-webkit-scrollbar-button {
-  height: 0;
-  width: 0;
-}
-
-.sv-category-list::-webkit-scrollbar {
-  width: 1px;
-}
-
-.sv-category-list::-webkit-scrollbar-track {
-  border-radius: 8px;
-  background-color: #e7e7e7;
-  border: 1px solid #cacaca;
-  box-shadow: inset 0 0 6px rgba(0, 0, 0, 0.3);
-}
-
-.sv-category-list::-webkit-scrollbar-thumb {
-  border-radius: 8px;
-  background-color: #363636;
 }
 
 /* Show More Button */
 .sv-show-more-btn {
   background: none;
   border: none;
-  color: #555;
+  color: #666;
   cursor: pointer;
   padding: 0.3rem 0;
   font-size: 0.82rem;
-  margin-top: 0.25rem;
+  margin-top: 0.4rem;
   display: inline-flex;
   align-items: center;
   gap: 4px;
@@ -176,17 +174,19 @@ accordion-tab[open] .sv-filter-body {
 .sv-show-more-btn:hover {
   color: #1a1e2b;
 }
+
 /* ---- Price Range Slider ---- */
 .sv-price-slider-wrap {
-  margin: 1rem 0 1rem;
+  margin: 0.75rem 0 1rem;
   padding: 0 8px;
 }
 .sv-price-track {
   position: relative;
   height: 3px;
-  background: #ddd;
-  border-radius: 2px;
-  margin-bottom: 1.25rem;
+  background: #e0e0e0;
+  border-radius: 99px;
+  margin-bottom: 0.75rem;
+  user-select: none;
 }
 .sv-price-fill {
   position: absolute;
@@ -194,20 +194,22 @@ accordion-tab[open] .sv-filter-body {
   right: 0;
   height: 100%;
   background: #1a1e2b;
-  border-radius: 2px;
+  border-radius: 99px;
 }
+
 .sv-price-thumb {
   position: absolute;
   top: 50%;
   transform: translate(-50%, -50%);
-  width: 14px;
-  height: 14px;
+  width: 15px;
+  height: 15px;
   background: #1a1e2b;
-  border: 2px solid #fff;
+  border: 2.5px solid #fff;
+  outline: 2px solid #1a1e2b;
   border-radius: 50%;
   cursor: grab;
-  box-shadow: 0 0 0 2px #1a1e2b;
   z-index: 2;
+  box-sizing: border-box;
 }
 .sv-price-thumb:active {
   cursor: grabbing;
@@ -217,14 +219,15 @@ accordion-tab[open] .sv-filter-body {
 }
 .sv-price-thumb--right {
   right: 0;
+  left: auto;
   transform: translate(50%, -50%);
 }
+
 .sv-price-inputs {
   display: flex;
   align-items: center;
-  justify-content: space-between;
   gap: 0.5rem;
-  margin-top: 0.75rem;
+  margin-top: 0.5rem;
 }
 .sv-price-field {
   display: flex;
@@ -238,13 +241,13 @@ accordion-tab[open] .sv-filter-body {
 }
 .sv-price-field span {
   font-size: 0.8rem;
-  color: #555;
+  color: #777;
 }
 .sv-price-field input {
   background: none;
   border: none;
   width: 100%;
-  font-size: 0.85rem;
+  font-size: 0.84rem;
   color: #1a1a1a;
   outline: none;
   min-width: 0;
@@ -255,12 +258,143 @@ accordion-tab[open] .sv-filter-body {
   flex-shrink: 0;
 }
 
+/* ================================================================
+   COLOR SWATCHES
+   Each swatch is a rounded button filled with the colour value.
+   The hidden checkbox drives the selected state; the visible
+   <span class="sv-color-swatch"> receives the ring via CSS.
+================================================================ */
+.sv-color-swatches {
+  display: flex;
+  flex-wrap: wrap;
+  padding: 5px;
+  gap: 10px;
+}
+
+.sv-color-label {
+  position: relative;
+  cursor: pointer;
+  display: inline-block;
+  line-height: 0;
+}
+
+/* Hide the real checkbox but keep it accessible */
+.sv-color-check {
+  position: absolute;
+  opacity: 0;
+  width: 0;
+  height: 0;
+  pointer-events: none;
+}
+
+.sv-color-swatch {
+  display: block;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  border: 2px solid rgba(0, 0, 0, 0.08);
+  box-sizing: border-box;
+  transition:
+    box-shadow 0.15s ease,
+    transform 0.15s ease;
+}
+
+.sv-color-label:hover .sv-color-swatch {
+  transform: scale(1.1);
+}
+
+/* Selected state — subtle dark outline ring */
+.sv-color-check:checked + .sv-color-swatch {
+  box-shadow:
+    0 0 0 2px #fff,
+    0 0 0 4px #1a1e2b;
+}
+
+/* ---- Reset Filters Button ---- */
+.sv-reset-btn {
+  display: block;
+  width: 100%;
+  margin-top: 1.75rem;
+  padding: 0.6rem 1rem;
+  background: transparent;
+  border: 1.5px solid #e53935;
+  color: #e53935;
+  border-radius: 8px;
+  font-size: 0.84rem;
+  font-weight: 600;
+  cursor: pointer;
+  text-align: center;
+  transition:
+    background 0.2s,
+    color 0.2s;
+}
+.sv-reset-btn:hover {
+  background: #e53935;
+  color: #fff;
+}
+
+/* ---- Products Section ---- */
+.sv-products-section {
+  flex: 1;
+  min-width: 0;
+}
+
+/* ---- Active Filter Chips ---- */
+.sv-active-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  margin-bottom: 0.85rem;
+}
+.sv-active-filters:empty {
+  display: none;
+}
+
+.sv-filter-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: #1a1e2b;
+  color: #fff;
+  border-radius: 20px;
+  padding: 0.22rem 0.6rem 0.22rem 0.75rem;
+  font-size: 0.76rem;
+  font-weight: 500;
+  line-height: 1.4;
+}
+
+/* Small colour dot inside a colour chip */
+.sv-chip-swatch {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  flex-shrink: 0;
+}
+
+.sv-filter-chip-remove {
+  background: none;
+  border: none;
+  color: rgba(255, 255, 255, 0.7);
+  cursor: pointer;
+  padding: 0;
+  font-size: 0.95rem;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  transition: color 0.15s;
+}
+.sv-filter-chip-remove:hover {
+  color: #fff;
+}
+
 /* ---- Toolbar ---- */
 .sv-toolbar {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 1.5rem;
+  margin-bottom: 1.25rem;
   flex-wrap: wrap;
   gap: 0.75rem;
 }
@@ -271,7 +405,7 @@ accordion-tab[open] .sv-filter-body {
 }
 
 .sv-sort-select {
-  padding: 0.5rem 2rem 0.5rem 0.85rem;
+  padding: 0.48rem 2rem 0.48rem 0.85rem;
   border: 1px solid #e0e0e0;
   border-radius: 8px;
   background: #fff
@@ -292,7 +426,7 @@ accordion-tab[open] .sv-filter-body {
 .sv-view-switcher {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 5px;
 }
 .sv-view-btn {
   width: 30px;
@@ -310,9 +444,9 @@ accordion-tab[open] .sv-filter-body {
   padding: 4px;
 }
 .sv-view-btn img {
-  width: 16px;
-  height: 16px;
-  opacity: 0.55;
+  width: 15px;
+  height: 15px;
+  opacity: 0.5;
   display: block;
 }
 .sv-view-btn:hover,
@@ -334,7 +468,7 @@ accordion-tab[open] .sv-filter-body {
   color: #555;
 }
 .sv-per-page-select {
-  padding: 0.4rem 1.6rem 0.4rem 0.65rem;
+  padding: 0.4rem 1.8rem 0.4rem 0.65rem;
   border: 1px solid #e0e0e0;
   border-radius: 6px;
   background: #fff
@@ -343,12 +477,14 @@ accordion-tab[open] .sv-filter-body {
   background-size: 9px;
   -webkit-appearance: none;
   appearance: none;
-  font-size: 0.82rem;
+  font-size: 0.84rem;
   cursor: pointer;
   outline: none;
 }
 
-/* ---- Product Grid ---- */
+/* ================================================================
+   PRODUCT GRID
+================================================================ */
 .sv-product-grid {
   display: grid;
   gap: 1.25rem;
@@ -366,16 +502,44 @@ accordion-tab[open] .sv-filter-body {
   grid-template-columns: 1fr;
 }
 
+/* ================================================================
+   LIST VIEW — image left, all text right
+================================================================ */
 .sv-product-grid.sv-grid-list .sv-product-card {
-  display: flex;
+  /* Card itself just provides the white rounded shell */
+}
+
+.sv-product-grid.sv-grid-list .sv-card-link {
+  display: flex !important;
+  flex-direction: row;
   align-items: center;
   gap: 1.25rem;
+  width: 100%;
   text-align: left;
 }
+
 .sv-product-grid.sv-grid-list .sv-card-image {
-  flex: 0 0 120px;
-  height: 120px;
+  flex: 0 0 140px;
+  width: 140px;
+  height: 140px;
   aspect-ratio: unset;
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.sv-product-grid.sv-grid-list .sv-card-info {
+  flex: 1;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  padding: 0.5rem 0.75rem 0.5rem 0;
+}
+
+/* ---- Product Card ---- */
+.sv-card-link {
+  text-decoration: none;
+  color: inherit;
+  display: block;
 }
 
 .sv-product-card {
@@ -391,6 +555,7 @@ accordion-tab[open] .sv-filter-body {
   box-shadow: 0 6px 20px rgba(0, 0, 0, 0.09);
   transform: translateY(-2px);
 }
+
 .sv-card-image {
   background: #f0f0f0;
   aspect-ratio: 1 / 1;
@@ -411,12 +576,18 @@ accordion-tab[open] .sv-filter-body {
 .sv-card-info {
   display: flex;
   justify-content: space-between;
+  align-items: flex-start;
   padding: 0.7rem 0.75rem 0.85rem;
+  gap: 0.5rem;
+}
+
+.sv-card-info-main {
+  flex: 1;
 }
 
 .sv-card-title {
-  margin: 0 0 0.35rem;
-  font-size: 0.88rem;
+  margin: 0 0 0.3rem;
+  font-size: 0.86rem;
   font-weight: 400;
   color: #222;
   line-height: 1.4;
@@ -428,12 +599,31 @@ accordion-tab[open] .sv-filter-body {
   display: flex;
   align-items: center;
   gap: 6px;
+  flex-wrap: wrap;
 }
 .sv-price-original {
   text-decoration: line-through;
   color: #aaa;
   font-weight: 400;
-  font-size: 0.82rem;
+  font-size: 0.8rem;
+}
+.sv-card-rating {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 0.76rem;
+  color: #666;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+/* No results */
+.sv-no-results {
+  grid-column: 1 / -1;
+  text-align: center;
+  padding: 3rem 1rem;
+  color: #888;
+  font-size: 0.95rem;
 }
 
 /* ---- Load More ---- */
@@ -458,7 +648,8 @@ accordion-tab[open] .sv-filter-body {
   height: 100%;
   background: #1a1e2b;
   border-radius: 2px;
-  width: 80%;
+  width: 0%;
+  transition: width 0.4s ease;
 }
 .sv-load-more-btn {
   display: inline-block;
@@ -473,7 +664,8 @@ accordion-tab[open] .sv-filter-body {
   cursor: pointer;
   transition:
     background 0.2s,
-    transform 0.15s;
+    transform 0.15s,
+    opacity 0.2s;
 }
 .sv-load-more-btn:hover {
   background: #2e3549;
@@ -482,73 +674,22 @@ accordion-tab[open] .sv-filter-body {
 .sv-load-more-btn:active {
   transform: translateY(0);
 }
+.sv-load-more-btn:disabled {
+  opacity: 0.4;
+  cursor: default;
+  transform: none;
+}
+.sv-load-more-btn.sv-hidden,
+.sv-load-more-wrap.sv-all-loaded .sv-load-more-btn {
+  display: none;
+}
 
 /* Utility */
 .sv-hidden {
   display: none !important;
 }
-/* ---- Reset Filters Button ---- */
-.sv-reset-btn {
-  display: block;
-  width: 100%;
-  margin-top: 1.5rem;
-  padding: 0.6rem 1rem;
-  background: transparent;
-  border: 1.5px solid #e53935;
-  color: #e53935;
-  border-radius: 8px;
-  font-size: 0.85rem;
-  font-weight: 600;
-  cursor: pointer;
-  text-align: center;
-  transition:
-    background 0.2s,
-    color 0.2s;
-}
-.sv-reset-btn:hover {
-  background: #e53935;
-  color: #fff;
-}
 
-/* ---- Active Filter Chips ---- */
-.sv-active-filters {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem;
-  margin-bottom: 1rem;
-  min-height: 0;
-}
-.sv-active-filters:empty {
-  display: none;
-}
-.sv-filter-chip {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  background: #1a1e2b;
-  color: #fff;
-  border-radius: 20px;
-  padding: 0.25rem 0.65rem 0.25rem 0.75rem;
-  font-size: 0.78rem;
-  font-weight: 500;
-  cursor: default;
-}
-.sv-filter-chip button {
-  background: none;
-  border: none;
-  color: #fff;
-  cursor: pointer;
-  padding: 0;
-  font-size: 0.9rem;
-  line-height: 1;
-  opacity: 0.75;
-  display: flex;
-  align-items: center;
-}
-.sv-filter-chip button:hover {
-  opacity: 1;
-}
-
+/* ---- Responsive ---- */
 @media (max-width: 1100px) {
   .sv-product-grid.sv-grid-4 {
     grid-template-columns: repeat(3, 1fr);
@@ -579,5 +720,12 @@ accordion-tab[open] .sv-filter-body {
   .sv-toolbar {
     flex-direction: column;
     align-items: flex-start;
+  }
+
+  /* Keep list view usable on mobile */
+  .sv-product-grid.sv-grid-list .sv-card-image {
+    flex: 0 0 90px;
+    width: 90px;
+    height: 90px;
   }
 }

@@ -1,198 +1,616 @@
-class AccordionTab extends HTMLElement {
-  constructor() {
-    super();
-  }
-  connectedCallback() {
-    this.tabHeader = this.querySelector("[data-header]");
-    this.tabContent = this.querySelector("[data-content]");
-    this.tabHeader.addEventListener("click", this.handleToggle.bind(this));
-  }
-  disconnectedCallback() {
-    this.tabHeader.removeEventListener("click", this.handleToggle.bind(this));
-  }
-  handleToggle() {
-    this.toggleAttribute("open");
-  }
-}
-customElements.define("accordion-tab", AccordionTab);
+/* =======================================================
+   Collection Filter + Load More — collection.js
+   =======================================================
 
-/* ---- Active Filters Manager ---- */
-const activeFiltersEl = document.getElementById("sv-active-filters");
+   NOTE ON THE <script id="sv-all-products-data"> PATTERN
+   -------------------------------------------------------
+   Embedding the full product catalogue as JSON inside a
+   <script type="application/json"> tag is the standard
+   Shopify pattern for client-side filtering. Liquid renders
+   the data once at page-load time, so all subsequent
+   filtering/sorting happens instantly with zero API calls
+   and no page reload — exactly what we need here.
 
-function renderChips() {
-  if (!activeFiltersEl) return;
-  activeFiltersEl.innerHTML = "";
+   Trade-off to be aware of: for catalogues beyond ~300-500
+   products the serialised JSON can add meaningful weight to
+   the initial HTML payload (~1-2 KB per product uncompressed).
+   If that becomes a concern, switch to paginated Storefront
+   API requests instead. For most stores this approach is
+   correct and should be kept as-is.
+   ======================================================= */
 
-  document.querySelectorAll('.sv-checkbox-list input[type="checkbox"]:checked').forEach(function (cb) {
-    let label = cb.closest("label");
-    let text = label ? label.textContent.trim() : cb.value.trim();
-    let chip = document.createElement("span");
-    chip.className = "sv-filter-chip";
-    chip.innerHTML = `${text} <button aria-label="Remove filter">✕</button>`;
-    chip.querySelector("button").addEventListener("click", function () {
-      cb.checked = false;
-      renderChips();
-    });
-    activeFiltersEl.appendChild(chip);
-  });
-}
-
-document.querySelectorAll('.sv-checkbox-list input[type="checkbox"]').forEach(function (cb) {
-  cb.addEventListener("change", renderChips);
-});
-
-/* ---- Show More (category list) ---- */
-document.querySelectorAll("[data-sv-show-more]").forEach(function (btn) {
-  let cls = btn.getAttribute("data-sv-show-more");
-  let items = document.querySelectorAll("." + cls);
-  let expanded = false;
-  btn.addEventListener("click", function () {
-    expanded = !expanded;
-    items.forEach(function (el) {
-      el.classList.toggle("sv-hidden", !expanded);
-    });
-    btn.textContent = expanded ? "− Show Less" : `+ ${items.length} More`;
-  });
-  // Set initial text with count
-  btn.textContent = `+ ${items.length} More`;
-});
-
-/* ---- Category search filter ---- */
-let searchInput = document.querySelector(".sv-category-search");
-if (searchInput) {
-  searchInput.addEventListener("input", function () {
-    let q = this.value.toLowerCase().trim();
-    document.querySelectorAll(".sv-category-list li").forEach(function (li) {
-      li.style.display = !q || li.textContent.toLowerCase().includes(q) ? "" : "none";
-    });
-  });
-}
-
-/* ---- Grid view switcher ---- */
-let grid = document.getElementById("sv-product-grid");
-let viewBtns = document.querySelectorAll("[data-sv-grid]");
-let allGridClasses = ["sv-grid-list", "sv-grid-2", "sv-grid-3", "sv-grid-4"];
-viewBtns.forEach(function (btn) {
-  btn.addEventListener("click", function () {
-    let targetClass = btn.getAttribute("data-sv-grid");
-    viewBtns.forEach(function (b) {
-      b.classList.remove("sv-active");
-    });
-    btn.classList.add("sv-active");
-    allGridClasses.forEach(function (c) {
-      grid.classList.remove(c);
-    });
-    grid.classList.add(targetClass);
-  });
-});
-
-/* ---- Price Range Slider (dynamic max) ---- */
 (function () {
-  let track = document.querySelector(".sv-price-track");
-  let fill = document.getElementById("sv-price-fill");
-  let thumbMin = document.getElementById("sv-thumb-min");
-  let thumbMax = document.getElementById("sv-thumb-max");
-  let inputMin = document.getElementById("sv-price-min");
-  let inputMax = document.getElementById("sv-price-max");
+  "use strict";
 
-  if (!track) return;
-
-  // Dynamically compute max price from rendered product cards
-  let MAX_PRICE = 3000;
-  let computed = 0;
-  document.querySelectorAll(".sv-product-card").forEach(function (card) {
-    let priceEl = card.querySelector(".sv-card-price");
-    if (!priceEl) return;
-    // grab only the first text node (the current price, not strikethrough)
-    let raw = 0;
-    priceEl.childNodes.forEach(function (node) {
-      if (node.nodeType === Node.TEXT_NODE) {
-        let val = parseFloat(node.textContent.replace(/[^0-9.]/g, ""));
-        if (!isNaN(val)) raw = Math.max(raw, val);
+  /* ---- Accordion Web Component ---- */
+  class AccordionTab extends HTMLElement {
+    connectedCallback() {
+      this.tabHeader = this.querySelector("[data-header]");
+      if (this.tabHeader) {
+        this.tabHeader.addEventListener("click", () => this.toggleAttribute("open"));
       }
+    }
+  }
+  customElements.define("accordion-tab", AccordionTab);
+
+  /* ================================================================
+     DATA — parse embedded JSON product catalogue
+  ================================================================ */
+  let ALL_PRODUCTS = [];
+  const dataEl = document.getElementById("sv-all-products-data");
+  if (dataEl) {
+    try {
+      ALL_PRODUCTS = JSON.parse(dataEl.textContent);
+    } catch (e) {
+      console.warn("Could not parse product data", e);
+    }
+  }
+
+  const MAX_PRICE = ALL_PRODUCTS.reduce((m, p) => Math.max(m, p.price), 0) || 3000;
+
+  const state = {
+    categories: [],
+    sizes: [],
+    colors: [],
+    status: [],
+    priceMin: 0,
+    priceMax: MAX_PRICE,
+    sort: "",
+    perPage: 12,
+    loadedCount: 12,
+  };
+
+  /* 
+     DOM REFS
+  */
+  const gridEl = document.getElementById("sv-product-grid");
+  const chipsEl = document.getElementById("sv-active-filters");
+  const progressFill = document.getElementById("sv-progress-fill");
+  const showingEl = document.getElementById("sv-showing-count");
+  const totalEl = document.getElementById("sv-total-count");
+  const loadMoreBtn = document.getElementById("sv-load-more-btn");
+  const resetBtn = document.getElementById("sv-reset-filters");
+  const sortSel = document.getElementById("sv-sort-select");
+  const perPageSel = document.getElementById("sv-per-page");
+  const priceMinInput = document.getElementById("sv-price-min");
+  const priceMaxInput = document.getElementById("sv-price-max");
+
+  /* 
+     HELPERS
+   */
+  function escHtml(str) {
+    return String(str).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+  }
+
+  const allSizes = [...new Set(ALL_PRODUCTS.flatMap((p) => (p.sizes || []).filter(Boolean)))];
+  const allColors = [...new Set(ALL_PRODUCTS.flatMap((p) => (p.colors || []).filter(Boolean)))];
+
+  function createAccordionTab(titleText, bodyEl) {
+    const tab = document.createElement("accordion-tab");
+    tab.setAttribute("open", "");
+
+    const h3 = document.createElement("h3");
+    h3.setAttribute("data-header", "");
+    h3.className = "sv-filter-header";
+    h3.innerHTML = `${escHtml(titleText)} <span class="sv-toggle-icon">−</span>`;
+
+    const body = document.createElement("div");
+    body.setAttribute("data-content", "");
+    body.className = "sv-filter-body";
+    body.appendChild(bodyEl);
+
+    tab.appendChild(h3);
+    tab.appendChild(body);
+    return tab;
+  }
+
+  (function injectDynamicFilters() {
+    const panel = document.querySelector(".sv-filter-panel");
+    const anchor = document.getElementById("sv-reset-filters");
+    if (!panel || !anchor) return;
+
+    /* --- Size filter (only if sizes exist in store) --- */
+    if (allSizes.length > 0) {
+      const ul = document.createElement("ul");
+      ul.className = "sv-checkbox-list";
+      allSizes.forEach(function (sz) {
+        const li = document.createElement("li");
+        li.innerHTML = `<label>
+          <input type="checkbox" class="sv-filter-check" data-filter-group="size" value="${escHtml(sz)}">
+          <span>${escHtml(sz.toUpperCase())}</span>
+        </label>`;
+        ul.appendChild(li);
+      });
+      panel.insertBefore(createAccordionTab("Size", ul), anchor);
+    }
+
+    /* --- Color filter (only if colors exist in store) --- */
+    if (allColors.length > 0) {
+      const wrap = document.createElement("div");
+      wrap.className = "sv-color-swatches";
+      allColors.forEach(function (col) {
+        const lbl = document.createElement("label");
+        lbl.className = "sv-color-label";
+        lbl.title = col.charAt(0).toUpperCase() + col.slice(1);
+        lbl.innerHTML = `
+          <input type="checkbox" class="sv-filter-check sv-color-check"
+                 data-filter-group="color" value="${escHtml(col)}">
+          <span class="sv-color-swatch" style="background-color:${escHtml(col)};"
+                aria-label="${escHtml(col)}"></span>`;
+        wrap.appendChild(lbl);
+      });
+      panel.insertBefore(createAccordionTab("Color", wrap), anchor);
+    }
+
+    /* Re-attach events to the newly injected checkboxes */
+    attachCheckboxEvents();
+  })();
+
+  function readURLParams() {
+    const p = new URLSearchParams(window.location.search);
+
+    const cats = p.get("filter_cat");
+    if (cats) state.categories = cats.split(",").filter(Boolean);
+
+    const sizes = p.get("filter_size");
+    if (sizes) state.sizes = sizes.split(",").filter(Boolean);
+
+    const colors = p.get("filter_color");
+    if (colors) state.colors = colors.split(",").filter(Boolean);
+
+    const statuses = p.get("filter_status");
+    if (statuses) state.status = statuses.split(",").filter(Boolean);
+
+    const pMin = p.get("price_min");
+    if (pMin !== null && pMin !== "") state.priceMin = parseFloat(pMin) || 0;
+
+    const pMax = p.get("price_max");
+    if (pMax !== null && pMax !== "") state.priceMax = parseFloat(pMax) || MAX_PRICE;
+
+    const sort = p.get("sort_by");
+    if (sort) state.sort = sort;
+
+    const perPage = p.get("per_page");
+    if (perPage) state.perPage = parseInt(perPage) || 12;
+  }
+
+  function syncUIToState() {
+    if (sortSel) sortSel.value = state.sort;
+    if (perPageSel) perPageSel.value = String(state.perPage);
+
+    document.querySelectorAll(".sv-filter-check").forEach(function (cb) {
+      const g = cb.dataset.filterGroup;
+      const v = cb.value;
+      if (g === "category") cb.checked = state.categories.includes(v);
+      if (g === "size") cb.checked = state.sizes.includes(v);
+      if (g === "color") cb.checked = state.colors.includes(v);
+      if (g === "status") cb.checked = state.status.includes(v);
     });
-    computed = Math.max(computed, raw);
-  });
-  if (computed > 0) MAX_PRICE = Math.ceil(computed / 100) * 100; // round up to nearest 100
-
-  if (inputMax) inputMax.value = MAX_PRICE;
-
-  let dragging = null;
-  let pctMin = 0,
-    pctMax = 1;
-
-  function updateSlider() {
-    let left = pctMin * 100;
-    let right = (1 - pctMax) * 100;
-    fill.style.left = left + "%";
-    fill.style.right = right + "%";
-    thumbMin.style.left = left + "%";
-    thumbMax.style.right = right + "%";
-    if (inputMin) inputMin.value = Math.round(pctMin * MAX_PRICE);
-    if (inputMax) inputMax.value = Math.round(pctMax * MAX_PRICE);
   }
 
-  function getPct(e) {
-    let rect = track.getBoundingClientRect();
-    let x = (e.touches ? e.touches[0].clientX : e.clientX) - rect.left;
-    return Math.min(1, Math.max(0, x / rect.width));
+  function getFilteredProducts() {
+    return ALL_PRODUCTS.filter(function (p) {
+      /* Category */
+      if (state.categories.length > 0) {
+        if (!state.categories.some((h) => (p.collections || []).includes(h))) return false;
+      }
+      /* Price */
+      if (p.price < state.priceMin || p.price > state.priceMax) return false;
+
+      /* Size */
+      if (state.sizes.length > 0) {
+        if (!state.sizes.some((s) => (p.sizes || []).includes(s))) return false;
+      }
+      /* Color */
+      if (state.colors.length > 0) {
+        if (!state.colors.some((c) => (p.colors || []).includes(c))) return false;
+      }
+      /* Status */
+      if (state.status.length > 0) {
+        const ok = state.status.some(function (s) {
+          if (s === "in_stock") return p.available === true;
+          if (s === "out_stock") return p.available === false;
+          if (s === "on_sale") return p.on_sale === true;
+          return false;
+        });
+        if (!ok) return false;
+      }
+
+      return true;
+    });
   }
 
-  [thumbMin, thumbMax].forEach(function (thumb) {
-    ["mousedown", "touchstart"].forEach(function (ev) {
-      thumb.addEventListener(ev, function (e) {
-        e.preventDefault();
-        dragging = thumb === thumbMin ? "min" : "max";
+  function sortProducts(list) {
+    const s = list.slice();
+    switch (state.sort) {
+      case "price-asc":
+        return s.sort((a, b) => a.price - b.price);
+      case "price-desc":
+        return s.sort((a, b) => b.price - a.price);
+      case "alpha-asc":
+        return s.sort((a, b) => a.title.localeCompare(b.title));
+      case "alpha-desc":
+        return s.sort((a, b) => b.title.localeCompare(a.title));
+      case "date-desc":
+        return s.sort((a, b) => (b.published_at || 0) - (a.published_at || 0));
+      case "date-asc":
+        return s.sort((a, b) => (a.published_at || 0) - (b.published_at || 0));
+      case "best-selling": // Shopify's default sort is best-selling; original array order reflects it
+      default:
+        return s;
+    }
+  }
+
+  function buildCard(p) {
+    const saleTag = p.on_sale ? `<span class="sv-price-original">$${(p.compare_at_price || 0).toFixed(2)}</span>` : "";
+    const img = p.image
+      ? `<img src="${p.image}" alt="${escHtml(p.title)}" loading="lazy" width="300" height="300">`
+      : `<div class="sv-card-image-placeholder"></div>`;
+
+    return `<div class="sv-product-card"
+        data-price="${p.price}"
+        data-available="${p.available}"
+        data-on-sale="${p.on_sale}">
+      <a href="${p.url}" class="sv-card-link">
+        <div class="sv-card-image">${img}</div>
+        <div class="sv-card-info">
+          <div class="sv-card-info-main">
+            <h4 class="sv-card-title">${escHtml(p.title)}</h4>
+            <div class="sv-card-price">
+              $${p.price.toFixed(2)} ${saleTag}
+            </div>
+          </div>
+          <div class="sv-card-rating">
+            <svg width="12" height="12" viewBox="0 0 12 12" fill="#f5a623">
+              <path d="M6 1l1.5 3h3l-2.4 1.8.9 3L6 7.2 3 8.8l.9-3L1.5 4h3z"/>
+            </svg>
+            4.5 (189)
+          </div>
+        </div>
+      </a>
+    </div>`;
+  }
+
+  function renderGrid(resetCount) {
+    if (resetCount) state.loadedCount = state.perPage;
+
+    const filtered = sortProducts(getFilteredProducts());
+    const toShow = filtered.slice(0, state.loadedCount);
+
+    if (toShow.length === 0) {
+      gridEl.innerHTML = `<div class="sv-no-results">No products match your filters.</div>`;
+    } else {
+      gridEl.innerHTML = toShow.map(buildCard).join("");
+    }
+
+    const total = filtered.length;
+    const shown = Math.min(state.loadedCount, total);
+    if (showingEl) showingEl.textContent = shown;
+    if (totalEl) totalEl.textContent = total;
+    if (progressFill) progressFill.style.width = total > 0 ? (shown / total) * 100 + "%" : "0%";
+
+    if (loadMoreBtn) {
+      if (shown >= total || total === 0) {
+        loadMoreBtn.style.display = "none";
+      } else {
+        loadMoreBtn.style.display = "";
+        loadMoreBtn.disabled = false;
+        loadMoreBtn.textContent = "LOAD MORE";
+      }
+    }
+
+    updateURL();
+    renderChips();
+  }
+
+  if (loadMoreBtn) {
+    loadMoreBtn.addEventListener("click", function () {
+      state.loadedCount += state.perPage;
+      loadMoreBtn.disabled = true;
+      loadMoreBtn.textContent = "Loading…";
+      setTimeout(function () {
+        renderGrid(false);
+      }, 200);
+    });
+  }
+
+  if (perPageSel) {
+    perPageSel.addEventListener("change", function () {
+      state.perPage = parseInt(this.value) || 12;
+      renderGrid(true);
+    });
+  }
+
+  if (sortSel) {
+    sortSel.addEventListener("change", function () {
+      state.sort = this.value;
+      renderGrid(true);
+    });
+  }
+
+  function attachCheckboxEvents() {
+    document.querySelectorAll(".sv-filter-check").forEach(function (cb) {
+      if (cb._svBound) return;
+      cb._svBound = true;
+
+      cb.addEventListener("change", function () {
+        const group = this.dataset.filterGroup;
+        const val = this.value;
+
+        function toggle(arr) {
+          if (cb.checked) {
+            if (!arr.includes(val)) arr.push(val);
+          } else {
+            const i = arr.indexOf(val);
+            if (i > -1) arr.splice(i, 1);
+          }
+        }
+
+        if (group === "category") toggle(state.categories);
+        if (group === "size") toggle(state.sizes);
+        if (group === "color") toggle(state.colors);
+        if (group === "status") toggle(state.status);
+
+        renderGrid(true);
       });
     });
-  });
+  }
 
-  ["mousemove", "touchmove"].forEach(function (ev) {
-    document.addEventListener(ev, function (e) {
-      if (!dragging) return;
-      let p = getPct(e);
-      if (dragging === "min") pctMin = Math.min(p, pctMax - 0.02);
-      else pctMax = Math.max(p, pctMin + 0.02);
-      updateSlider();
+  attachCheckboxEvents();
+
+  (function () {
+    const track = document.querySelector(".sv-price-track");
+    const fill = document.getElementById("sv-price-fill");
+    const thumbMin = document.getElementById("sv-thumb-min");
+    const thumbMax = document.getElementById("sv-thumb-max");
+
+    if (!track) return;
+
+    let dragging = null;
+    let pctMin = state.priceMin / MAX_PRICE;
+    let pctMax = state.priceMax / MAX_PRICE;
+
+    function updateSlider() {
+      const l = pctMin * 100;
+      const r = (1 - pctMax) * 100;
+      fill.style.left = l + "%";
+      fill.style.right = r + "%";
+      thumbMin.style.left = l + "%";
+      thumbMax.style.right = r + "%";
+
+      const vMin = Math.round(pctMin * MAX_PRICE);
+      const vMax = Math.round(pctMax * MAX_PRICE);
+      if (priceMinInput) priceMinInput.value = vMin;
+      if (priceMaxInput) priceMaxInput.value = vMax;
+      state.priceMin = vMin;
+      state.priceMax = vMax;
+    }
+
+    function getPct(e) {
+      const rect = track.getBoundingClientRect();
+      const x = (e.touches ? e.touches[0].clientX : e.clientX) - rect.left;
+      return Math.min(1, Math.max(0, x / rect.width));
+    }
+
+    [thumbMin, thumbMax].forEach(function (thumb) {
+      ["mousedown", "touchstart"].forEach(function (ev) {
+        thumb.addEventListener(ev, function (e) {
+          e.preventDefault();
+          dragging = thumb === thumbMin ? "min" : "max";
+        });
+      });
     });
-  });
 
-  ["mouseup", "touchend"].forEach(function (ev) {
-    document.addEventListener(ev, function () {
-      dragging = null;
-    });
-  });
-
-  if (inputMin)
-    inputMin.addEventListener("change", function () {
-      pctMin = Math.min((parseInt(this.value) || 0) / MAX_PRICE, pctMax - 0.02);
-      updateSlider();
-    });
-  if (inputMax)
-    inputMax.addEventListener("change", function () {
-      pctMax = Math.max((parseInt(this.value) || MAX_PRICE) / MAX_PRICE, pctMin + 0.02);
-      updateSlider();
+    ["mousemove", "touchmove"].forEach(function (ev) {
+      document.addEventListener(ev, function (e) {
+        if (!dragging) return;
+        const p = getPct(e);
+        if (dragging === "min") pctMin = Math.min(p, pctMax - 0.02);
+        else pctMax = Math.max(p, pctMin + 0.02);
+        updateSlider();
+      });
     });
 
-  updateSlider();
+    ["mouseup", "touchend"].forEach(function (ev) {
+      document.addEventListener(ev, function () {
+        if (dragging) {
+          dragging = null;
+          renderGrid(true);
+        }
+      });
+    });
 
-  /* ---- Reset Filters ---- */
-  let resetBtn = document.getElementById("sv-reset-filters");
+    if (priceMinInput) {
+      priceMinInput.addEventListener("change", function () {
+        pctMin = Math.min((parseFloat(this.value) || 0) / MAX_PRICE, pctMax - 0.02);
+        updateSlider();
+        renderGrid(true);
+      });
+    }
+    if (priceMaxInput) {
+      priceMaxInput.addEventListener("change", function () {
+        pctMax = Math.max((parseFloat(this.value) || MAX_PRICE) / MAX_PRICE, pctMin + 0.02);
+        updateSlider();
+        renderGrid(true);
+      });
+    }
+
+    updateSlider();
+  })();
+
+  function labelForValue(group, val) {
+    if (group === "category") {
+      const el = document.querySelector(`.sv-filter-check[data-filter-group="category"][value="${CSS.escape(val)}"]`);
+      if (el) {
+        const lbl = el.closest("label");
+        return lbl ? lbl.textContent.trim() : val;
+      }
+      return val;
+    }
+    if (group === "size") return val.toUpperCase();
+    if (group === "color") return val.charAt(0).toUpperCase() + val.slice(1);
+    if (group === "status") return { in_stock: "In Stock", out_stock: "Out of Stock", on_sale: "On Sale" }[val] || val;
+    return val;
+  }
+
+  function renderChips() {
+    if (!chipsEl) return;
+    chipsEl.innerHTML = "";
+
+    function addChip(label, onRemove, swatchColor) {
+      const chip = document.createElement("span");
+      chip.className = "sv-filter-chip";
+      const swatch = swatchColor
+        ? `<span class="sv-chip-swatch" style="background:${escHtml(swatchColor)}"></span>`
+        : "";
+      chip.innerHTML = `${swatch}${escHtml(label)} <button class="sv-filter-chip-remove" aria-label="Remove filter">✕</button>`;
+      chip.querySelector(".sv-filter-chip-remove").addEventListener("click", onRemove);
+      chipsEl.appendChild(chip);
+    }
+
+    state.categories.forEach(function (val) {
+      addChip(labelForValue("category", val), function () {
+        state.categories = state.categories.filter((v) => v !== val);
+        const cb = document.querySelector(`.sv-filter-check[data-filter-group="category"][value="${CSS.escape(val)}"]`);
+        if (cb) cb.checked = false;
+        renderGrid(true);
+      });
+    });
+
+    state.sizes.forEach(function (val) {
+      addChip(labelForValue("size", val), function () {
+        state.sizes = state.sizes.filter((v) => v !== val);
+        const cb = document.querySelector(`.sv-filter-check[data-filter-group="size"][value="${CSS.escape(val)}"]`);
+        if (cb) cb.checked = false;
+        renderGrid(true);
+      });
+    });
+
+    state.colors.forEach(function (val) {
+      addChip(
+        labelForValue("color", val),
+        function () {
+          state.colors = state.colors.filter((v) => v !== val);
+          const cb = document.querySelector(`.sv-filter-check[data-filter-group="color"][value="${CSS.escape(val)}"]`);
+          if (cb) cb.checked = false;
+          renderGrid(true);
+        },
+        val /* pass color for swatch in chip */,
+      );
+    });
+
+    state.status.forEach(function (val) {
+      addChip(labelForValue("status", val), function () {
+        state.status = state.status.filter((v) => v !== val);
+        const cb = document.querySelector(`.sv-filter-check[data-filter-group="status"][value="${CSS.escape(val)}"]`);
+        if (cb) cb.checked = false;
+        renderGrid(true);
+      });
+    });
+
+    if (state.priceMin > 0 || state.priceMax < MAX_PRICE) {
+      addChip(`$${state.priceMin} – $${state.priceMax}`, function () {
+        state.priceMin = 0;
+        state.priceMax = MAX_PRICE;
+        resetPriceSliderUI();
+        renderGrid(true);
+      });
+    }
+  }
+
+  function resetPriceSliderUI() {
+    const fill = document.getElementById("sv-price-fill");
+    const thumbMin = document.getElementById("sv-thumb-min");
+    const thumbMax = document.getElementById("sv-thumb-max");
+    if (fill) {
+      fill.style.left = "0%";
+      fill.style.right = "0%";
+    }
+    if (thumbMin) thumbMin.style.left = "0%";
+    if (thumbMax) thumbMax.style.right = "0%";
+    if (priceMinInput) priceMinInput.value = 0;
+    if (priceMaxInput) priceMaxInput.value = MAX_PRICE;
+  }
+
   if (resetBtn) {
     resetBtn.addEventListener("click", function () {
-      // Uncheck all checkboxes
-      document.querySelectorAll('.sv-checkbox-list input[type="checkbox"]').forEach(function (cb) {
-        cb.checked = false;
-      });
-      // Reset price slider
-      pctMin = 0;
-      pctMax = 1;
-      updateSlider();
-      // Clear chips
-      renderChips();
-      // Reset sort select
-      let sortSel = document.querySelector(".sv-sort-select");
+      state.categories = [];
+      state.sizes = [];
+      state.colors = [];
+      state.status = [];
+      state.priceMin = 0;
+      state.priceMax = MAX_PRICE;
+      state.sort = "";
+      state.loadedCount = state.perPage;
+
+      document.querySelectorAll(".sv-filter-check").forEach((cb) => (cb.checked = false));
       if (sortSel) sortSel.selectedIndex = 0;
+      resetPriceSliderUI();
+      renderGrid(true);
     });
   }
+
+  const allGridClasses = ["sv-grid-list", "sv-grid-2", "sv-grid-3", "sv-grid-4"];
+  document.querySelectorAll("[data-sv-grid]").forEach(function (btn) {
+    btn.addEventListener("click", function () {
+      document.querySelectorAll("[data-sv-grid]").forEach((b) => b.classList.remove("sv-active"));
+      btn.classList.add("sv-active");
+      allGridClasses.forEach((c) => gridEl.classList.remove(c));
+      gridEl.classList.add(btn.getAttribute("data-sv-grid"));
+    });
+  });
+
+  (function () {
+    const list = document.querySelector(".sv-category-list");
+    const showMoreBtn = document.getElementById("sv-show-more-cat");
+    if (!list || !showMoreBtn) return;
+
+    const items = list.querySelectorAll("li");
+    const VISIBLE_DEFAULT = 6;
+    let expanded = false;
+
+    items.forEach(function (li, i) {
+      if (i >= VISIBLE_DEFAULT) li.classList.add("sv-hidden");
+    });
+
+    const hiddenCount = Math.max(0, items.length - VISIBLE_DEFAULT);
+    showMoreBtn.textContent = `+ ${hiddenCount} More`;
+    if (hiddenCount === 0) showMoreBtn.style.display = "none";
+
+    showMoreBtn.addEventListener("click", function () {
+      expanded = !expanded;
+      items.forEach(function (li, i) {
+        if (i >= VISIBLE_DEFAULT) li.classList.toggle("sv-hidden", !expanded);
+      });
+      showMoreBtn.textContent = expanded ? "− Show Less" : `+ ${hiddenCount} More`;
+    });
+
+    const searchInput = document.querySelector(".sv-category-search");
+    if (searchInput) {
+      searchInput.addEventListener("input", function () {
+        const q = this.value.toLowerCase().trim();
+        items.forEach(function (li) {
+          li.style.display = !q || li.textContent.toLowerCase().includes(q) ? "" : "none";
+        });
+      });
+    }
+  })();
+
+  function updateURL() {
+    const params = new URLSearchParams();
+    if (state.categories.length) params.set("filter_cat", state.categories.join(","));
+    if (state.sizes.length) params.set("filter_size", state.sizes.join(","));
+    if (state.colors.length) params.set("filter_color", state.colors.join(","));
+    if (state.status.length) params.set("filter_status", state.status.join(","));
+    if (state.priceMin > 0) params.set("price_min", state.priceMin);
+    if (state.priceMax < MAX_PRICE) params.set("price_max", state.priceMax);
+    if (state.sort) params.set("sort_by", state.sort);
+
+    const newURL = window.location.pathname + (params.toString() ? "?" + params.toString() : "");
+    history.replaceState({}, "", newURL);
+  }
+
+  readURLParams();
+  syncUIToState();
+  renderGrid(true);
 })();
