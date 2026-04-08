@@ -1,8 +1,8 @@
 {% comment %} 
-    This section is used in the collection template to render collection page
-    listing all products within a collection.
-   
-    https://shopify.dev/docs/storefronts/themes/architecture/templates/collection 
+              This section is used in the collection template to render collection page
+              listing all products within a collection.
+             
+              https://shopify.dev/docs/storefronts/themes/architecture/templates/collection 
 {% endcomment %}
 
 {{ 'collection.css' | asset_url | stylesheet_tag }}
@@ -12,6 +12,8 @@
 <section class="sv-collection-wrapper">
 
   <aside class="sv-filter-panel">
+
+
     <accordion-tab open>
       <h3 data-header class="sv-filter-header">
         Product Type
@@ -24,37 +26,23 @@
             class="sv-category-search"
             placeholder="Find a category"
             aria-label="Search categories">
-          <span class="sv-search-icon"><img src="{{'search.svg' |  asset_url }}" alt="search icon"></span>
+          <span class="sv-search-icon"><img src="{{  'search.svg' |  asset_url }}" alt="search icon"></span>
         </div>
         <ul class="sv-checkbox-list sv-category-list">
-          <li>
-            <label><input type="checkbox" value="accessories"> Accessories (21)</label>
-          </li>
-          <li>
-            <label><input type="checkbox" value="bags"> Bags (49)</label>
-          </li>
-          <li>
-            <label><input type="checkbox" value="goods"> Goods (47)</label>
-          </li>
-          <li>
-            <label><input type="checkbox" value="pants"> Pants (16)</label>
-          </li>
-          <li>
-            <label><input type="checkbox" value="shoes"> Shoes (33)</label>
-          </li>
-          <li>
-            <label><input type="checkbox" value="sweaters"> Sweaters (19)</label>
-          </li>
-          {%- comment -%} Items beyond the first 6 are hidden initially {%- endcomment -%}
+
+
+          {% for collection in collections %}
+            <li>
+              <label><input type="checkbox" value=" {{- collection.title }}"> {{- collection.title | link_to: collection.url }}</label>
+            </li>
+
+          {% endfor %}
+
+
           <li class="sv-extra-item sv-hidden">
             <label><input type="checkbox" value="shirts"> Shirts (22)</label>
           </li>
-          <li class="sv-extra-item sv-hidden">
-            <label><input type="checkbox" value="jackets"> Jackets (11)</label>
-          </li>
-          <li class="sv-extra-item sv-hidden">
-            <label><input type="checkbox" value="hats"> Hats (8)</label>
-          </li>
+
         </ul>
         <button class="sv-show-more-btn" data-sv-show-more="sv-extra-item">+ 13 More</button>
       </div>
@@ -140,7 +128,7 @@
         </ul>
       </div>
     </accordion-tab>
-
+    <button class="sv-reset-btn" id="sv-reset-filters">Reset filters</button>
   </aside>
 
 
@@ -195,7 +183,7 @@
         </select>
       </div>
     </div>
-
+    <div class="sv-active-filters" id="sv-active-filters"></div>
     <div class="sv-product-grid sv-grid-4" id="sv-product-grid">
       {%- for product in collections.all.products -%}
         <div class="sv-product-card">
