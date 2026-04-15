@@ -1,3 +1,11 @@
+
+.sv-page-title {
+  margin: 1rem 1rem 0.25rem;
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: #192739;
+}
+
 .sv-collection-wrapper {
   display: flex;
   gap: 1rem;
@@ -70,12 +78,11 @@ accordion-tab[open] .sv-filter-body {
   margin-top: 1rem;
 }
 
-/* Category Search */
+/* ── Category Search ── */
 .sv-search-wrap {
   position: relative;
   margin-bottom: 0.75rem;
 }
-
 .sv-search-wrap input {
   width: 100%;
   padding: 0.45rem 2rem 0.45rem 0.75rem;
@@ -88,7 +95,6 @@ accordion-tab[open] .sv-filter-body {
   outline: none;
   transition: border-color 0.2s;
 }
-
 .sv-search-wrap input:focus {
   border-color: #aaa;
   background: #fff;
@@ -107,7 +113,7 @@ accordion-tab[open] .sv-filter-body {
   display: block;
 }
 
-/* ---- Scrollable Category List — thin rod scrollbar ---- */
+/* ── Scrollable Category List ── */
 .sv-category-list {
   max-height: 168px;
   overflow-y: scroll;
@@ -129,7 +135,7 @@ accordion-tab[open] .sv-filter-body {
   background: #aaa;
 }
 
-/* Checkbox List */
+/* ── Checkbox List ── */
 .sv-checkbox-list {
   list-style: none;
   padding: 0;
@@ -159,7 +165,7 @@ accordion-tab[open] .sv-filter-body {
   flex-shrink: 0;
 }
 
-/* Show More Button */
+/* ── Show More ── */
 .sv-show-more-btn {
   background: none;
   border: none;
@@ -176,11 +182,11 @@ accordion-tab[open] .sv-filter-body {
   color: #1a1e2b;
 }
 
+/* ── Price Slider ── */
 .sv-price-slider-wrap {
   margin: 0.75rem 0 1rem;
   padding: 0 11px;
 }
-
 .sv-price-track {
   position: relative;
   height: 3px;
@@ -197,7 +203,6 @@ accordion-tab[open] .sv-filter-body {
   background: #1a1e2b;
   border-radius: 99px;
 }
-
 .sv-price-thumb {
   position: absolute;
   top: 50%;
@@ -259,28 +264,19 @@ accordion-tab[open] .sv-filter-body {
   flex-shrink: 0;
 }
 
-/* ===========================================================
-   COLOR SWATCHES
-   Each swatch is a rounded button filled with the colour value.
-   The hidden checkbox drives the selected state; the visible
-   <span class="sv-color-swatch"> receives the ring via CSS.
-============================================================== */
-
+/* ── Color Swatches ── */
 .sv-color-swatches {
   display: flex;
   flex-wrap: wrap;
   padding: 5px;
   gap: 10px;
 }
-
 .sv-color-label {
   position: relative;
   cursor: pointer;
   display: inline-block;
   line-height: 0;
 }
-
-/* Hide the real checkbox but keep it accessible */
 .sv-color-check {
   position: absolute;
   opacity: 0;
@@ -288,7 +284,6 @@ accordion-tab[open] .sv-filter-body {
   height: 0;
   pointer-events: none;
 }
-
 .sv-color-swatch {
   display: block;
   width: 20px;
@@ -300,19 +295,16 @@ accordion-tab[open] .sv-filter-body {
     box-shadow 0.15s ease,
     transform 0.15s ease;
 }
-
 .sv-color-label:hover .sv-color-swatch {
   transform: scale(1.1);
 }
-
-/* Selected state — subtle dark outline ring */
 .sv-color-check:checked + .sv-color-swatch {
   box-shadow:
     0 0 0 2px #fff,
     0 0 0 4px #1a1e2b;
 }
 
-/* ---- Reset Filters Button ---- */
+/* ── Reset Button ── */
 .sv-reset-btn {
   display: block;
   width: 100%;
@@ -335,13 +327,111 @@ accordion-tab[open] .sv-filter-body {
   color: #fff;
 }
 
-/* ---- Products Section ---- */
+/* ================================================================
+   SEARCH PAGE — search bar at top of product section
+================================================================ */
+.sv-search-page-header {
+  padding: 0 1rem;
+}
+.sv-search-meta {
+  color: #666;
+  font-size: 0.9rem;
+  margin: 0.25rem 0 0;
+}
+
+.sv-product-search-wrap {
+  margin-bottom: 1.25rem;
+}
+
+.sv-product-search-form {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.sv-product-search-field {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  border: 1.5px solid #e0e0e0;
+  border-radius: 10px;
+  padding: 0.6rem 0.9rem;
+  background: #fff;
+  transition:
+    border-color 0.2s,
+    box-shadow 0.2s;
+}
+.sv-product-search-field:focus-within {
+  border-color: #1a1e2b;
+  box-shadow: 0 0 0 3px rgba(26, 30, 43, 0.07);
+}
+.sv-product-search-field svg {
+  flex-shrink: 0;
+}
+.sv-product-search-field input[type="search"] {
+  flex: 1;
+  border: none;
+  outline: none;
+  font-size: 0.95rem;
+  color: #222;
+  background: transparent;
+  min-width: 0;
+}
+.sv-product-search-field input[type="search"]::placeholder {
+  color: #aaa;
+}
+/* Remove browser default 'x' on search inputs */
+.sv-product-search-field input[type="search"]::-webkit-search-cancel-button {
+  display: none;
+}
+
+/* Custom clear button */
+.sv-search-clear-btn {
+  background: none;
+  border: none;
+  color: #aaa;
+  font-size: 0.9rem;
+  cursor: pointer;
+  padding: 0;
+  line-height: 1;
+  flex-shrink: 0;
+  transition: color 0.15s;
+}
+.sv-search-clear-btn:hover {
+  color: #555;
+}
+
+.sv-search-submit-btn {
+  background: #1a1e2b;
+  color: #fff;
+  border: none;
+  border-radius: 10px;
+  padding: 0.65rem 1.5rem;
+  font-size: 0.88rem;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  cursor: pointer;
+  white-space: nowrap;
+  transition:
+    background 0.2s,
+    transform 0.15s;
+}
+.sv-search-submit-btn:hover {
+  background: #2e3549;
+  transform: translateY(-1px);
+}
+.sv-search-submit-btn:active {
+  transform: translateY(0);
+}
+
+/* ── Products Section ── */
 .sv-products-section {
   flex: 1;
   min-width: 0;
 }
 
-/* ---- Active Filter Chips ---- */
+/* ── Active Filter Chips ── */
 .sv-active-filters {
   display: flex;
   flex-wrap: wrap;
@@ -364,7 +454,6 @@ accordion-tab[open] .sv-filter-body {
   font-weight: 500;
   line-height: 1.4;
 }
-
 .sv-chip-swatch {
   display: inline-block;
   width: 10px;
@@ -373,7 +462,6 @@ accordion-tab[open] .sv-filter-body {
   border: 1px solid rgba(255, 255, 255, 0.4);
   flex-shrink: 0;
 }
-
 .sv-filter-chip-remove {
   background: none;
   border: none;
@@ -390,6 +478,7 @@ accordion-tab[open] .sv-filter-body {
   color: #fff;
 }
 
+/* ── Toolbar ── */
 .sv-toolbar {
   display: flex;
   justify-content: space-between;
@@ -398,7 +487,6 @@ accordion-tab[open] .sv-filter-body {
   flex-wrap: wrap;
   gap: 0.75rem;
 }
-
 .sv-toolbar-left {
   display: flex;
   align-items: center;
@@ -406,6 +494,7 @@ accordion-tab[open] .sv-filter-body {
   gap: 0.75rem;
 }
 
+/* ── Custom Sort Select ── */
 .sv-sort-select {
   padding: 0.48rem 2rem 0.48rem 0.85rem;
   border: 1px solid #e0e0e0;
@@ -421,18 +510,12 @@ accordion-tab[open] .sv-filter-body {
   cursor: pointer;
   outline: none;
 }
-
-.sv-sort-select:focus {
-  border-color: #338cff21;
-}
-
 .sv-custom-select-wrapper {
   position: relative;
   width: 260px;
   font-family: inherit;
   user-select: none;
 }
-
 .sv-custom-select-trigger {
   display: flex;
   justify-content: space-between;
@@ -447,8 +530,6 @@ accordion-tab[open] .sv-filter-body {
   border: 1px solid #e0e0e0;
   transition: border-color 0.2s ease;
 }
-
-/* Trigger focus/open state */
 .sv-custom-select.open .sv-custom-select-trigger {
   border-color: #338cff21;
 }
@@ -464,21 +545,18 @@ accordion-tab[open] .sv-filter-body {
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
   padding: 8px 0;
   z-index: 99;
-
   opacity: 0;
   visibility: hidden;
   transform: translateY(-10px);
   pointer-events: none;
   transition: all 0.2s ease;
 }
-
 .sv-custom-select.open .sv-custom-options {
   opacity: 1;
   visibility: visible;
   transform: translateY(0);
   pointer-events: all;
 }
-
 .sv-custom-option {
   display: block;
   padding: 8px;
@@ -487,14 +565,11 @@ accordion-tab[open] .sv-filter-body {
   cursor: pointer;
   transition: background-color 0.2s ease;
 }
-
 .sv-custom-option:hover,
 .sv-custom-option.selected {
   background-color: #e8f0fe;
   color: #213143;
 }
-
-/* Rotate the arrow when open */
 .sv-custom-select-trigger svg {
   transition: transform 0.3s ease;
 }
@@ -502,6 +577,7 @@ accordion-tab[open] .sv-filter-body {
   transform: rotate(180deg);
 }
 
+/* ── View Switcher ── */
 .sv-view-switcher {
   display: flex;
   align-items: center;
@@ -539,6 +615,7 @@ accordion-tab[open] .sv-filter-body {
   opacity: 1;
 }
 
+/* ── Toolbar Right ── */
 .sv-toolbar-right {
   display: flex;
   align-items: center;
@@ -561,9 +638,6 @@ accordion-tab[open] .sv-filter-body {
   outline: none;
 }
 
-/* ================================================================
-   PRODUCT GRID
-================================================================ */
 .sv-product-grid {
   display: grid;
   gap: 1.25rem;
@@ -581,13 +655,7 @@ accordion-tab[open] .sv-filter-body {
   grid-template-columns: 1fr;
 }
 
-/* ================================================================
-   LIST VIEW — image left, all text right
-================================================================ */
-.sv-product-grid.sv-grid-list .sv-product-card {
-  /* Card itself just provides the white rounded shell */
-}
-
+/* ── List view ── */
 .sv-product-grid.sv-grid-list .sv-card-link {
   display: flex !important;
   flex-direction: row;
@@ -596,7 +664,6 @@ accordion-tab[open] .sv-filter-body {
   width: 100%;
   text-align: left;
 }
-
 .sv-product-grid.sv-grid-list .sv-card-image {
   flex: 0 0 140px;
   width: 140px;
@@ -605,7 +672,6 @@ accordion-tab[open] .sv-filter-body {
   border-radius: 10px;
   overflow: hidden;
 }
-
 .sv-product-grid.sv-grid-list .sv-card-info {
   flex: 1;
   display: flex;
@@ -614,13 +680,12 @@ accordion-tab[open] .sv-filter-body {
   padding: 0.5rem 0.75rem 0.5rem 0;
 }
 
-/* ---- Product Card ---- */
+/* ── Product Card ── */
 .sv-card-link {
   text-decoration: none;
   color: inherit;
   display: block;
 }
-
 .sv-product-card {
   background: #fff;
   border-radius: 12px;
@@ -634,7 +699,6 @@ accordion-tab[open] .sv-filter-body {
   box-shadow: 0 6px 20px rgba(0, 0, 0, 0.09);
   transform: translateY(-2px);
 }
-
 .sv-card-image {
   background: #f0f0f0;
   aspect-ratio: 1 / 1;
@@ -651,7 +715,6 @@ accordion-tab[open] .sv-filter-body {
 .sv-product-card:hover .sv-card-image img {
   transform: scale(1.02);
 }
-
 .sv-card-info {
   display: flex;
   justify-content: space-between;
@@ -659,11 +722,9 @@ accordion-tab[open] .sv-filter-body {
   padding: 0.7rem 0.75rem 0.85rem;
   gap: 0.5rem;
 }
-
 .sv-card-info-main {
   flex: 1;
 }
-
 .sv-card-title {
   margin: 0 0 0.3rem;
   font-size: 0.86rem;
@@ -696,7 +757,6 @@ accordion-tab[open] .sv-filter-body {
   flex-shrink: 0;
 }
 
-/* No results */
 .sv-no-results {
   grid-column: 1 / -1;
   text-align: center;
@@ -705,7 +765,7 @@ accordion-tab[open] .sv-filter-body {
   font-size: 0.95rem;
 }
 
-/* ---- Load More ---- */
+/* ── Load More ── */
 .sv-load-more-wrap {
   margin-top: 2.5rem;
   text-align: center;
@@ -758,22 +818,27 @@ accordion-tab[open] .sv-filter-body {
   cursor: default;
   transform: none;
 }
-.sv-load-more-btn.sv-hidden,
-.sv-load-more-wrap.sv-all-loaded .sv-load-more-btn {
-  display: none;
-}
 
-/* Utility */
+/* ── Utility ── */
 .sv-hidden {
   display: none !important;
 }
 
-/* ---- Responsive ---- */
+
+
+/* TODO fix: hide 3-col and 4-col grid buttons on mobile */
+@media (max-width: 768px) {
+  .sv-hide-mobile {
+    display: none !important;
+  }
+}
+
 @media (max-width: 1100px) {
   .sv-product-grid.sv-grid-4 {
     grid-template-columns: repeat(3, 1fr);
   }
 }
+
 @media (max-width: 900px) {
   .sv-collection-wrapper {
     flex-direction: column;
@@ -789,6 +854,7 @@ accordion-tab[open] .sv-filter-body {
     grid-template-columns: repeat(2, 1fr);
   }
 }
+
 @media (max-width: 540px) {
   .sv-product-grid.sv-grid-4,
   .sv-product-grid.sv-grid-3,
@@ -796,15 +862,25 @@ accordion-tab[open] .sv-filter-body {
     grid-template-columns: repeat(2, 1fr);
     gap: 0.75rem;
   }
+
   .sv-toolbar {
     flex-direction: column;
     align-items: flex-start;
   }
 
-  /* Keep list view usable on mobile */
   .sv-product-grid.sv-grid-list .sv-card-image {
     flex: 0 0 90px;
     width: 90px;
     height: 90px;
+  }
+
+  /* Stack search bar on small screens */
+  .sv-product-search-form {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .sv-search-submit-btn {
+    width: 100%;
+    text-align: center;
   }
 }

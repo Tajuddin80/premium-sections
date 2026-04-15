@@ -1,28 +1,7 @@
-/* =======================================================
-   Collection Filter + Load More — collection.js
-   =======================================================
-
-   NOTE ON THE <script id="sv-all-products-data"> PATTERN
-   -------------------------------------------------------
-   Embedding the full product catalogue as JSON inside a
-   <script type="application/json"> tag is the standard
-   Shopify pattern for client-side filtering. Liquid renders
-   the data once at page-load time, so all subsequent
-   filtering/sorting happens instantly with zero API calls
-   and no page reload — exactly what we need here.
-
-   Trade-off to be aware of: for catalogues beyond ~300-500
-   products the serialised JSON can add meaningful weight to
-   the initial HTML payload (~1-2 KB per product uncompressed).
-   If that becomes a concern, switch to paginated Storefront
-   API requests instead. For most stores this approach is
-   correct and should be kept as-is.
-   ======================================================= */
-
 (function () {
   "use strict";
 
-  /* ---- Accordion Web Component ---- */
+  /* ── Accordion Web Component ── */
   class AccordionTab extends HTMLElement {
     connectedCallback() {
       this.tabHeader = this.querySelector("[data-header]");
@@ -31,21 +10,26 @@
       }
     }
   }
-  customElements.define("accordion-tab", AccordionTab);
+  if (!customElements.get("accordion-tab")) {
+    customElements.define("accordion-tab", AccordionTab);
+  }
 
+  /* ── Load product data ── */
   let ALL_PRODUCTS = [];
   const dataEl = document.getElementById("sv-all-products-data");
   if (dataEl) {
     try {
       ALL_PRODUCTS = JSON.parse(dataEl.textContent);
     } catch (e) {
-      console.warn("Could not parse product data", e);
+      console.warn("sv-collection: could not parse product data", e);
     }
   }
 
   const MAX_PRICE = ALL_PRODUCTS.reduce((m, p) => Math.max(m, p.price), 0) || 3000;
 
+  /* ── Application state ── */
   const state = {
+    searchQuery: "", // live search (search page only)
     categories: [],
     sizes: [],
     colors: [],
@@ -57,9 +41,7 @@
     loadedCount: 12,
   };
 
-  /* 
-     DOM REFS
-  */
+  /* ── DOM refs ── */
   const gridEl = document.getElementById("sv-product-grid");
   const chipsEl = document.getElementById("sv-active-filters");
   const progressFill = document.getElementById("sv-progress-fill");
@@ -72,16 +54,20 @@
   const priceMinInput = document.getElementById("sv-price-min");
   const priceMaxInput = document.getElementById("sv-price-max");
 
-  /* 
-     HELPERS
-   */
+  // Search page elements (null on collection page — all guarded below)
+  const productSearchInput = document.getElementById("sv-product-search");
+  const searchClearBtn = document.getElementById("sv-search-clear");
+
+  /* ── Helpers ── */
   function escHtml(str) {
     return String(str).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
   }
 
-  const allSizes = [...new Set(ALL_PRODUCTS.flatMap((p) => (p.sizes || []).filter(Boolean)))];
-  const allColors = [...new Set(ALL_PRODUCTS.flatMap((p) => (p.colors || []).filter(Boolean)))];
+  /* ── Derive unique sizes & colors from all products ── */
+  const allSizes = [...new Set(ALL_PRODUCTS.flatMap((p) => p.sizes || []).filter(Boolean))];
+  const allColors = [...new Set(ALL_PRODUCTS.flatMap((p) => p.colors || []).filter(Boolean))];
 
+  /* ── Build accordion tab helper ── */
   function createAccordionTab(titleText, bodyEl) {
     const tab = document.createElement("accordion-tab");
     tab.setAttribute("open", "");
@@ -101,12 +87,12 @@
     return tab;
   }
 
+  /* ── Inject dynamic Size & Color filter tabs ── */
   (function injectDynamicFilters() {
     const panel = document.querySelector(".sv-filter-panel");
     const anchor = document.getElementById("sv-reset-filters");
     if (!panel || !anchor) return;
 
-    /* --- Size filter (only if sizes exist in store) --- */
     if (allSizes.length > 0) {
       const ul = document.createElement("ul");
       ul.className = "sv-checkbox-list";
@@ -121,7 +107,6 @@
       panel.insertBefore(createAccordionTab("Size", ul), anchor);
     }
 
-    /*  Color filter (only if colors exist in store)  */
     if (allColors.length > 0) {
       const wrap = document.createElement("div");
       wrap.className = "sv-color-swatches";
@@ -142,6 +127,38 @@
     attachCheckboxEvents();
   })();
 
+  /* ── Custom sort dropdown ── */
+  document.addEventListener("DOMContentLoaded", function () {
+    document.querySelectorAll(".sv-custom-select").forEach((wrapper) => {
+      const trigger = wrapper.querySelector(".sv-custom-select-trigger");
+      const triggerText = trigger.querySelector("span");
+      const options = wrapper.querySelectorAll(".sv-custom-option");
+      const nativeSelect = document.getElementById("sv-sort-select");
+
+      trigger.addEventListener("click", function (e) {
+        e.stopPropagation();
+        wrapper.classList.toggle("open");
+      });
+
+      options.forEach((option) => {
+        option.addEventListener("click", function (e) {
+          e.stopPropagation();
+          triggerText.textContent = this.textContent;
+          options.forEach((opt) => opt.classList.remove("selected"));
+          this.classList.add("selected");
+          nativeSelect.value = this.getAttribute("data-value");
+          nativeSelect.dispatchEvent(new Event("change"));
+          wrapper.classList.remove("open");
+        });
+      });
+
+      document.addEventListener("click", function (e) {
+        if (!wrapper.contains(e.target)) wrapper.classList.remove("open");
+      });
+    });
+  });
+
+  /* ── Read URL params into state ── */
   function readURLParams() {
     const p = new URLSearchParams(window.location.search);
 
@@ -168,8 +185,16 @@
 
     const perPage = p.get("per_page");
     if (perPage) state.perPage = parseInt(perPage) || 12;
+
+    // On the search page the initial query comes from the input's value
+    // (pre-filled by Liquid from search.terms). We read it here so the
+    // client-side filter starts in sync with the server-rendered results.
+    if (productSearchInput) {
+      state.searchQuery = productSearchInput.value.toLowerCase().trim();
+    }
   }
 
+  /* ── Reflect state back onto UI controls ── */
   function syncUIToState() {
     if (sortSel) sortSel.value = state.sort;
     if (perPageSel) perPageSel.value = String(state.perPage);
@@ -184,72 +209,37 @@
     });
   }
 
-  document.addEventListener("DOMContentLoaded", function () {
-    const customSelects = document.querySelectorAll(".sv-custom-select");
-
-    customSelects.forEach((wrapper) => {
-      const trigger = wrapper.querySelector(".sv-custom-select-trigger");
-      const triggerText = trigger.querySelector("span");
-      const options = wrapper.querySelectorAll(".sv-custom-option");
-      // Connect to your existing hidden select
-      const nativeSelect = document.getElementById("sv-sort-select");
-
-      // Toggle dropdown open/close
-      trigger.addEventListener("click", function (e) {
-        e.stopPropagation();
-        wrapper.classList.toggle("open");
-      });
-
-      // Handle option clicks
-      options.forEach((option) => {
-        option.addEventListener("click", function (e) {
-          e.stopPropagation();
-
-          // 1. Update the visual trigger text
-          triggerText.textContent = this.textContent;
-
-          // 2. Remove 'selected' class from all, add to clicked
-          options.forEach((opt) => opt.classList.remove("selected"));
-          this.classList.add("selected");
-
-          // 3. Update the hidden native select value
-          nativeSelect.value = this.getAttribute("data-value");
-
-          // 4. Fire the 'change' event so your collection.js script triggers the sorting!
-          nativeSelect.dispatchEvent(new Event("change"));
-
-          // 5. Close the dropdown
-          wrapper.classList.remove("open");
-        });
-      });
-
-      // Close dropdown if clicking outside of it
-      document.addEventListener("click", function (e) {
-        if (!wrapper.contains(e.target)) {
-          wrapper.classList.remove("open");
-        }
-      });
-    });
-  });
-
+  /* ── Filter products ── */
   function getFilteredProducts() {
     return ALL_PRODUCTS.filter(function (p) {
-      /* Category */
+      /* ① Text search (search page only — ignored when empty) */
+      if (state.searchQuery) {
+        const q = state.searchQuery;
+        const inTitle = (p.title || "").toLowerCase().includes(q);
+        const inType = (p.type || "").toLowerCase().includes(q);
+        const inTags = (p.tags || []).some((t) => t.toLowerCase().includes(q));
+        if (!inTitle && !inType && !inTags) return false;
+      }
+
+      /* ② Category */
       if (state.categories.length > 0) {
         if (!state.categories.some((h) => (p.collections || []).includes(h))) return false;
       }
-      /* Price */
+
+      /* ③ Price */
       if (p.price < state.priceMin || p.price > state.priceMax) return false;
 
-      /* Size */
+      /* ④ Size */
       if (state.sizes.length > 0) {
         if (!state.sizes.some((s) => (p.sizes || []).includes(s))) return false;
       }
-      /* Color */
+
+      /* ⑤ Color */
       if (state.colors.length > 0) {
         if (!state.colors.some((c) => (p.colors || []).includes(c))) return false;
       }
-      /* Status */
+
+      /* ⑥ Status */
       if (state.status.length > 0) {
         const ok = state.status.some(function (s) {
           if (s === "in_stock") return p.available === true;
@@ -264,6 +254,7 @@
     });
   }
 
+  /* ── Sort ── */
   function sortProducts(list) {
     const s = list.slice();
     switch (state.sort) {
@@ -279,23 +270,20 @@
         return s.sort((a, b) => (b.published_at || 0) - (a.published_at || 0));
       case "date-asc":
         return s.sort((a, b) => (a.published_at || 0) - (b.published_at || 0));
-      case "best-selling": // Shopify's default sort is best-selling; original array order reflects it
       default:
-        return s;
+        return s; // best-selling / featured = original order
     }
   }
 
+  /* ── Build a product card HTML string ── */
   function buildCard(p) {
     const saleTag = p.on_sale ? `<span class="sv-price-original">$${(p.compare_at_price || 0).toFixed(2)}</span>` : "";
     const img = p.image
-      ? `<img src="${p.image}" alt="${escHtml(p.title)}" loading="lazy" width="300" height="300">`
-      : `<div class="sv-card-image-placeholder"></div>`;
+      ? `<img src="${escHtml(p.image)}" alt="${escHtml(p.title)}" loading="lazy" width="300" height="300">`
+      : "";
 
-    return `<div class="sv-product-card"
-        data-price="${p.price}"
-        data-available="${p.available}"
-        data-on-sale="${p.on_sale}">
-      <a href="${p.url}" class="sv-card-link">
+    return `<div class="sv-product-card">
+      <a href="${escHtml(p.url)}" class="sv-card-link">
         <div class="sv-card-image">${img}</div>
         <div class="sv-card-info">
           <div class="sv-card-info-main">
@@ -315,6 +303,7 @@
     </div>`;
   }
 
+  /* ── Render the grid ── */
   function renderGrid(resetCount) {
     if (resetCount) state.loadedCount = state.perPage;
 
@@ -329,6 +318,7 @@
 
     const total = filtered.length;
     const shown = Math.min(state.loadedCount, total);
+
     if (showingEl) showingEl.textContent = shown;
     if (totalEl) totalEl.textContent = total;
     if (progressFill) progressFill.style.width = total > 0 ? (shown / total) * 100 + "%" : "0%";
@@ -347,17 +337,17 @@
     renderChips();
   }
 
+  /* ── Load more ── */
   if (loadMoreBtn) {
     loadMoreBtn.addEventListener("click", function () {
       state.loadedCount += state.perPage;
       loadMoreBtn.disabled = true;
       loadMoreBtn.textContent = "Loading…";
-      setTimeout(function () {
-        renderGrid(false);
-      }, 200);
+      setTimeout(() => renderGrid(false), 200);
     });
   }
 
+  /* ── Per-page selector ── */
   if (perPageSel) {
     perPageSel.addEventListener("change", function () {
       state.perPage = parseInt(this.value) || 12;
@@ -365,6 +355,7 @@
     });
   }
 
+  /* ── Sort selector ── */
   if (sortSel) {
     sortSel.addEventListener("change", function () {
       state.sort = this.value;
@@ -372,6 +363,30 @@
     });
   }
 
+  /* ── Live client-side search (search page only) ── */
+  if (productSearchInput) {
+    productSearchInput.addEventListener("input", function () {
+      state.searchQuery = this.value.toLowerCase().trim();
+      renderGrid(true);
+
+      // Show/hide the clear button dynamically
+      if (searchClearBtn) {
+        searchClearBtn.style.display = this.value ? "" : "none";
+      }
+    });
+  }
+
+  // Clear button wipes the input and re-renders
+  if (searchClearBtn) {
+    searchClearBtn.addEventListener("click", function () {
+      if (productSearchInput) productSearchInput.value = "";
+      state.searchQuery = "";
+      this.style.display = "none";
+      renderGrid(true);
+    });
+  }
+
+  /* ── Checkbox filter events ── */
   function attachCheckboxEvents() {
     document.querySelectorAll(".sv-filter-check").forEach(function (cb) {
       if (cb._svBound) return;
@@ -402,6 +417,7 @@
 
   attachCheckboxEvents();
 
+  /* ── Price range slider ── */
   (function () {
     const track = document.querySelector(".sv-price-track");
     const fill = document.getElementById("sv-price-fill");
@@ -482,6 +498,7 @@
     updateSlider();
   })();
 
+  /* ── Chip label helpers ── */
   function labelForValue(group, val) {
     if (group === "category") {
       const el = document.querySelector(`.sv-filter-check[data-filter-group="category"][value="${CSS.escape(val)}"]`);
@@ -497,6 +514,7 @@
     return val;
   }
 
+  /* ── Render active filter chips ── */
   function renderChips() {
     if (!chipsEl) return;
     chipsEl.innerHTML = "";
@@ -510,6 +528,16 @@
       chip.innerHTML = `${swatch}${escHtml(label)} <button class="sv-filter-chip-remove" aria-label="Remove filter">✕</button>`;
       chip.querySelector(".sv-filter-chip-remove").addEventListener("click", onRemove);
       chipsEl.appendChild(chip);
+    }
+
+    // Search query chip
+    if (state.searchQuery) {
+      addChip(`Search: "${state.searchQuery}"`, function () {
+        state.searchQuery = "";
+        if (productSearchInput) productSearchInput.value = "";
+        if (searchClearBtn) searchClearBtn.style.display = "none";
+        renderGrid(true);
+      });
     }
 
     state.categories.forEach(function (val) {
@@ -539,7 +567,7 @@
           if (cb) cb.checked = false;
           renderGrid(true);
         },
-        val /* pass color for swatch in chip */,
+        val,
       );
     });
 
@@ -562,6 +590,7 @@
     }
   }
 
+  /* ── Reset price slider UI ── */
   function resetPriceSliderUI() {
     const fill = document.getElementById("sv-price-fill");
     const thumbMin = document.getElementById("sv-thumb-min");
@@ -576,6 +605,7 @@
     if (priceMaxInput) priceMaxInput.value = MAX_PRICE;
   }
 
+  /* ── Reset all filters ── */
   if (resetBtn) {
     resetBtn.addEventListener("click", function () {
       state.categories = [];
@@ -585,15 +615,19 @@
       state.priceMin = 0;
       state.priceMax = MAX_PRICE;
       state.sort = "";
+      state.searchQuery = "";
       state.loadedCount = state.perPage;
 
       document.querySelectorAll(".sv-filter-check").forEach((cb) => (cb.checked = false));
       if (sortSel) sortSel.selectedIndex = 0;
+      if (productSearchInput) productSearchInput.value = "";
+      if (searchClearBtn) searchClearBtn.style.display = "none";
       resetPriceSliderUI();
       renderGrid(true);
     });
   }
 
+  /* ── Grid view switcher ── */
   const allGridClasses = ["sv-grid-list", "sv-grid-2", "sv-grid-3", "sv-grid-4"];
   document.querySelectorAll("[data-sv-grid]").forEach(function (btn) {
     btn.addEventListener("click", function () {
@@ -604,10 +638,11 @@
     });
   });
 
+  /* ── Category show-more + search ── */
   (function () {
     const list = document.querySelector(".sv-category-list");
     const showMoreBtn = document.getElementById("sv-show-more-cat");
-    if (!list || !showMoreBtn) return;
+    if (!list) return;
 
     const items = list.querySelectorAll("li");
     const VISIBLE_DEFAULT = 6;
@@ -617,17 +652,19 @@
       if (i >= VISIBLE_DEFAULT) li.classList.add("sv-hidden");
     });
 
-    const hiddenCount = Math.max(0, items.length - VISIBLE_DEFAULT);
-    showMoreBtn.textContent = `+ ${hiddenCount} More`;
-    if (hiddenCount === 0) showMoreBtn.style.display = "none";
+    if (showMoreBtn) {
+      const hiddenCount = Math.max(0, items.length - VISIBLE_DEFAULT);
+      showMoreBtn.textContent = `+ ${hiddenCount} More`;
+      if (hiddenCount === 0) showMoreBtn.style.display = "none";
 
-    showMoreBtn.addEventListener("click", function () {
-      expanded = !expanded;
-      items.forEach(function (li, i) {
-        if (i >= VISIBLE_DEFAULT) li.classList.toggle("sv-hidden", !expanded);
+      showMoreBtn.addEventListener("click", function () {
+        expanded = !expanded;
+        items.forEach(function (li, i) {
+          if (i >= VISIBLE_DEFAULT) li.classList.toggle("sv-hidden", !expanded);
+        });
+        showMoreBtn.textContent = expanded ? "− Show Less" : `+ ${hiddenCount} More`;
       });
-      showMoreBtn.textContent = expanded ? "− Show Less" : `+ ${hiddenCount} More`;
-    });
+    }
 
     const searchInput = document.querySelector(".sv-category-search");
     if (searchInput) {
@@ -640,6 +677,7 @@
     }
   })();
 
+  /* ── Sync state to URL (bookmarkable / shareable) ── */
   function updateURL() {
     const params = new URLSearchParams();
     if (state.categories.length) params.set("filter_cat", state.categories.join(","));
@@ -650,10 +688,16 @@
     if (state.priceMax < MAX_PRICE) params.set("price_max", state.priceMax);
     if (state.sort) params.set("sort_by", state.sort);
 
+    // Preserve the Shopify search query on the search page
+    const existing = new URLSearchParams(window.location.search);
+    if (existing.has("q")) params.set("q", existing.get("q"));
+    if (existing.has("type")) params.set("type", existing.get("type"));
+
     const newURL = window.location.pathname + (params.toString() ? "?" + params.toString() : "");
     history.replaceState({}, "", newURL);
   }
 
+  /* ── Bootstrap ── */
   readURLParams();
   syncUIToState();
   renderGrid(true);
