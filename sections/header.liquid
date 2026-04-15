@@ -1,3 +1,4 @@
+{{ 'header.css' |  asset_url |  stylesheet_tag }}
 <header>
   <h2 class="header__title">
     {{ shop.name | link_to: routes.root_url }}
@@ -5,11 +6,43 @@
 
   <div class="header__menu">
     {% for link in section.settings.menu.links %}
-      {{ link.title | link_to: link.url }}
+      <a href="{{ link.url }}">{{ link.title }}</a>
     {% endfor %}
   </div>
 
   <div class="header__icons">
+
+    <div class="sv-search-container" id="sv-search-container">
+
+      <button
+        class="sv-search-icon"
+        id="sv-search-icon"
+        aria-label="Open search">
+        {{ 'search-header.svg' | inline_asset_content }}
+      </button>
+
+      <div class="sv-search-input-wrapper" id="sv-search-wrapper">
+        <input
+          type="text"
+          id="sv-search-input"
+          class="sv-search-input"
+          placeholder="Search products & collections…"
+          autocomplete="off"
+          aria-label="Search"
+          aria-autocomplete="list"
+          aria-haspopup="listbox" />
+        <button
+          class="sv-search-close"
+          id="sv-search-close"
+          aria-label="Clear search">&#x2715;</button>
+      </div>
+
+      <div
+        class="sv-search-dropdown"
+        id="sv-search-dropdown"
+        role="listbox"></div>
+    </div>
+
     {% if shop.customer_accounts_enabled %}
       <shopify-account menu="{{ section.settings.customer_account_menu }}">
         {{ 'icon-account.svg' | inline_asset_content }}
@@ -20,58 +53,378 @@
       {% if cart.item_count > 0 %}
         <sup>{{ cart.item_count }}</sup>
       {% endif %}
-
       {{ 'icon-cart.svg' | inline_asset_content }}
     </a>
+
   </div>
 </header>
 
-{% stylesheet %}
-  header {
-    height: 5rem;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-  }
-  header a {
-    position: relative;
-    text-decoration: none;
-    color: var(--color-foreground);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
-  header a sup {
-    position: absolute;
-    left: 100%;
-    overflow: hidden;
-    max-width: var(--page-margin);
-  }
-  header svg {
-    width: 2rem;
-  }
-  header .header__menu,
-  header .header__icons {
-    display: flex;
-    gap: 1rem;
-  }
-{% endstylesheet %}
+<script>
+(function() {
+/* ── Money format from Liquid ── */
+    const MONEY_FORMAT = {{ shop.money_format | json }};
+
+    function formatMoney(cents) {
+      if (! cents && cents !== 0) return'';
+      
+      const symbol = MONEY_FORMAT
+        .replace(/\{\{.*?\}\}/, '')
+        .trim()
+        .replace(/[0-9.,\s]/g, '')
+        .trim() || '$';
+      const amount = (cents / 100).toFixed(2);
+      return symbol + amount;
+    }
+
+/* ── DOM refs ── */
+    const icon = document.getElementById('sv-search-icon');
+    const wrapper = document.getElementById('sv-search-wrapper');
+    const input = document.getElementById('sv-search-input');
+    const closeBtn = document.getElementById('sv-search-close');
+    const dropdown = document.getElementById('sv-search-dropdown');
+
+    let debounceTimer = null;
+    let currentFocus = -1;
+    let isOpen = false;
+    let lastQuery = '';
+    const cache = {};
+
+/* ── Open / close search bar ── */
+    function openSearch() {
+      isOpen = true;
+      icon.classList.add('sv-hidden');
+      wrapper.classList.add('sv-active');
+      requestAnimationFrame(() => input.focus());
+    }
+
+/* Only close bar via close button or Escape — NOT by clicking outside */
+    function closeSearch() {
+      isOpen = false;
+      icon.classList.remove('sv-hidden');
+      wrapper.classList.remove('sv-active');
+      closeDropdown();
+      input.value = '';
+      closeBtn.classList.remove('sv-visible');
+      lastQuery = '';
+    }
+
+    function closeDropdown() {
+      dropdown.classList.remove('sv-open');
+      dropdown.innerHTML = '';
+      currentFocus = -1;
+      dropdown._cards = [];
+    }
+
+    icon.addEventListener('click', openSearch);
+    closeBtn.addEventListener('click', closeSearch);
+
+/* Show / hide × based on text */
+    input.addEventListener('input', () => {
+      closeBtn.classList.toggle('sv-visible', input.value.length > 0);
+    });
+
+/* Clicking outside only closes the DROPDOWN, not the whole search */
+    document.addEventListener('click', e => {
+      if (dropdown.classList.contains('sv-open') && !document.getElementById('sv-search-container').contains(e.target)) {
+        closeDropdown();
+      }
+    });
+
+/* ── Shimmer skeleton ── */
+    function showShimmer(count = 3) {
+      dropdown.innerHTML = '';
+      for (let i = 0; i < count; i++) {
+        dropdown.innerHTML += `
+        <div class="sv-shimmer-card">
+          <div class="sv-shimmer-img"></div>
+          <div class="sv-shimmer-body">
+            <div class="sv-shimmer-line"></div>
+            <div class="sv-shimmer-line sv-shimmer-line--short"></div>
+          </div>
+        </div>`;
+      }
+      dropdown.classList.add('sv-open');
+    }
+
+/* ── Fetch with in-memory cache ── */
+    async function fetchSuggestions(q) {
+      if (cache[q]) return cache[q];
+      
+
+/* No `resources[fields]` filter — fetch ALL fields so images & prices come through */
+      const url = `/search/suggest.json?q=${
+        encodeURIComponent(q)
+      }` + `&resources[type]=product,collection` + `&resources[limit]=6`;
+
+      const res = await fetch(url);
+      if (! res.ok) 
+        throw new Error(`Search API error ${
+          res.status
+        }`);
+      
+      const data = await res.json();
+      cache[q] = data;
+      return data;
+    }
+
+/* ── Render results ── */
+    function renderResults(data, query) {
+      dropdown.innerHTML = '';
+      currentFocus = -1;
+
+/* Shopify returns: data.resources.results.{products,collections} */
+      const results = data ?. resources ?. results ?? {};
+      const products = results.products ?? [];
+      const collections = results.collections ?? [];
+
+      if (! products.length && ! collections.length) {
+        dropdown.innerHTML = `<p class="sv-search-status">No results for "<strong>${
+          escHtml(query)
+        }</strong>"</p>`;
+        dropdown.classList.add('sv-open');
+        return;
+      }
+
+      const allCards = [];
+
+/* ── Products section ── */
+      if (products.length) {
+        dropdown.appendChild(sectionTitle('Products'));
+
+        products.forEach(p => {
+
+/* Predictive search returns price as integer cents */
+          const priceStr = p.price
+            ? formatMoney(p.price)
+            : (
+              p.price_min
+                ? formatMoney(p.price_min)
+                : ''
+            );
+
+/* Image: predictive search puts it at p.image.url OR p.featured_image */
+          const imgSrc = p.image ?. url || (
+            typeof p.featured_image === 'string'
+              ? p.featured_image
+              : p.featured_image ?. url
+          ) || '';
+
+          const card = buildCard({
+            title: p.title,
+            sub: priceStr,
+            imgSrc,
+            badge: null,
+            url: p.url
+          });
+          dropdown.appendChild(card);
+          allCards.push(card);
+        });
+      }
+
+/* ── Collections section ── */
+      if (collections.length) {
+        if (products.length) 
+          dropdown.appendChild(divider());
+        
+        dropdown.appendChild(sectionTitle('Collections'));
+
+        collections.forEach(c => {
+          const imgSrc = c.image ?. url || (
+            typeof c.featured_image === 'string'
+              ? c.featured_image
+              : c.featured_image ?. url
+          ) || '';
+          const card = buildCard({
+            title: c.title,
+            sub: c.products_count != null
+              ? `${
+                c.products_count
+              } products`
+              : '',
+            imgSrc,
+            badge: 'Collection',
+            url: c.url
+          });
+          dropdown.appendChild(card);
+          allCards.push(card);
+        });
+      }
+
+/* ── View all ── */
+      const viewAll = document.createElement('a');
+      viewAll.className = 'sv-view-all';
+      viewAll.textContent = `View all results for "${query}"`;
+      viewAll.href = `/search?q=${
+        encodeURIComponent(query)
+      }&type=product,article,page`;
+      viewAll.addEventListener('click', e => {
+        e.preventDefault();
+        window.location.href = viewAll.href;
+      });
+      dropdown.appendChild(viewAll);
+
+      dropdown.classList.add('sv-open');
+      dropdown._cards = allCards;
+    }
+
+/* ── Build card ── */
+    function buildCard({
+      title,
+      sub,
+      imgSrc,
+      badge,
+      url
+    }) {
+      const card = document.createElement('div');
+      card.className = 'sv-result-card';
+      card.setAttribute('role', 'option');
+      card.tabIndex = -1;
+
+      const imgHtml = imgSrc
+        ? `<img class="sv-result-card__img" src="${
+          escAttr(imgSrc)
+        }" alt="${
+          escAttr(title)
+        }" loading="lazy" />`
+        : `<div class="sv-result-card__img-placeholder">🛍</div>`;
+
+      const badgeHtml = badge
+        ? `<span class="sv-result-card__badge">${
+          escHtml(badge)
+        }</span>`
+        : '';
+
+      card.innerHTML = `
+      ${imgHtml}
+      <div class="sv-result-card__body">
+        <div class="sv-result-card__title">${
+        escHtml(title)
+      }</div>
+        ${
+        sub
+          ? `<div class="sv-result-card__sub">${
+            escHtml(sub)
+          }</div>`
+          : ''
+        }
+      </div>
+      ${badgeHtml}
+    `;
+
+      card.addEventListener('click', () => {
+        window.location.href = url;
+      });
+      card.addEventListener('mouseenter', () => {
+        (dropdown._cards || []).forEach(c => c.classList.remove('sv-focused'));
+        card.classList.add('sv-focused');
+      });
+      card.addEventListener('mouseleave', () => card.classList.remove('sv-focused'));
+      return card;
+    }
+
+/* ── Keyboard nav ── */
+    function setFocus(index) {
+      const cards = dropdown._cards || [];
+      cards.forEach(c => c.classList.remove('sv-focused'));
+      currentFocus = index;
+      if (index >= 0 && cards[index]) {
+        cards[index].classList.add('sv-focused');
+        cards[index].scrollIntoView({block: 'nearest'});
+      }
+    }
+
+    input.addEventListener('keydown', e => {
+      const cards = dropdown._cards || [];
+      if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        setFocus(Math.min(currentFocus + 1, cards.length - 1));
+      } else if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        setFocus(Math.max(currentFocus - 1, 0));
+      } else if (e.key === 'Enter') {
+        if (currentFocus >= 0 && cards[currentFocus]) {
+          cards[currentFocus].click();
+        } else if (input.value.trim()) {
+          window.location.href = `/search?q=${
+            encodeURIComponent(input.value.trim())
+          }&type=product,article,page`;
+        }
+      } else if (e.key === 'Escape') {
+        closeSearch();
+      }
+    });
+
+/* ── Debounced input — show shimmer immediately, fetch in background ── */
+    input.addEventListener('input', () => {
+      const q = input.value.trim();
+      if (! q) {
+        closeDropdown();
+        return;
+      }
+      if (q === lastQuery) return;
+      
+      lastQuery = q;
+
+      showShimmer(3); // instant visual feedback
+
+      clearTimeout(debounceTimer);
+      debounceTimer = setTimeout(async () => {
+        try {
+          const data = await fetchSuggestions(q);
+          if (input.value.trim() === q) 
+            renderResults(data, q);
+           // guard stale
+        } catch (err) {
+          console.error('[sv-search]', err);
+          dropdown.innerHTML = '<p class="sv-search-status">Something went wrong. Please try again.</p>';
+          dropdown.classList.add('sv-open');
+        }
+      }, 160);
+    });
+
+/* ── Small XSS helpers ── */
+    function escHtml(str) {
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+    }
+    function escAttr(str) {
+      return escHtml(str);
+    }
+
+/* ── Helper DOM builders ── */
+    function sectionTitle(text) {
+      const p = document.createElement('p');
+      p.className = 'sv-dropdown-section-title';
+      p.textContent = text;
+      return p;
+    }
+    function divider() {
+      const d = document.createElement('div');
+      d.className = 'sv-dropdown-divider';
+      return d;
+    }
+  })
+  ();
+</script>
 
 {% schema %}
-{
-  "name": "t:general.header",
-  "settings": [
-    {
-      "type": "link_list",
-      "id": "menu",
-      "label": "t:labels.menu"
-    },
-    {
-      "type": "link_list",
-      "id": "customer_account_menu",
-      "label": "t:labels.customer_account_menu",
-      "default": "customer-account-main-menu"
-    }
-  ]
-}
+  {
+    "name": "t:general.header",
+    "settings": [
+      {
+        "type": "link_list",
+        "id": "menu",
+        "label": "t:labels.menu"
+      }, {
+        "type": "link_list",
+        "id": "customer_account_menu",
+        "label": "t:labels.customer_account_menu",
+        "default": "customer-account-main-menu"
+      }
+    ],
+    "presets": [{"name" : "header"}]
+  }
 {% endschema %}
