@@ -6,6 +6,8 @@
   {%- comment -%} ── FILTER SIDEBAR ── {%- endcomment -%}
   <aside class="sv-filter-panel">
 
+
+{% unless sv_show_search %} 
     {%- comment -%} Product Type / Category {%- endcomment -%}
     <accordion-tab open>
       <h3 data-header class="sv-filter-header">
@@ -46,34 +48,33 @@
         {% endif %}
       </div>
     </accordion-tab>
+      {% endunless %}
 
-    {%- comment -%} Price range {%- endcomment -%}
-    <accordion-tab open>
-      <h3 data-header class="sv-filter-header">
-        Price
-        <span class="sv-toggle-icon">−</span>
-      </h3>
-      <div data-content class="sv-filter-body">
-        <div class="sv-price-slider-wrap">
-          <div class="sv-price-track">
-            <div class="sv-price-fill" id="sv-price-fill"></div>
-            <div class="sv-price-thumb sv-price-thumb--left"  id="sv-thumb-min"></div>
-            <div class="sv-price-thumb sv-price-thumb--right" id="sv-thumb-max"></div>
-          </div>
-        </div>
-        <div class="sv-price-inputs">
-          <div class="sv-price-field">
-            <span>$</span>
-            <input type="text" id="sv-price-min" value="0" aria-label="Minimum price">
-          </div>
-          <span class="sv-price-sep">To</span>
-          <div class="sv-price-field">
-            <span>$</span>
-            <input type="text" id="sv-price-max" value="3000" aria-label="Maximum price">
-          </div>
-        </div>
+
+   {%- comment -%} Update the Price Accordion Tab [cite: 8, 9, 10] {%- endcomment -%}
+<accordion-tab open>
+  <h3 data-header class="sv-filter-header">Price <span class="sv-toggle-icon">−</span></h3>
+  <div data-content class="sv-filter-body">
+    <div class="sv-price-slider-wrap">
+      <div class="sv-price-track">
+        <div class="sv-price-fill" id="sv-price-fill"></div>
+        <div class="sv-price-thumb sv-price-thumb--left" id="sv-thumb-min"></div>
+        <div class="sv-price-thumb sv-price-thumb--right" id="sv-thumb-max"></div>
       </div>
-    </accordion-tab>
+    </div>
+    <div class="sv-price-inputs">
+      <div class="sv-price-field">
+        <span>$</span>
+        <input type="text" id="sv-price-min" value="{{ min_price_cents | divided_by: 100.0 | floor }}" aria-label="Min">
+      </div>
+      <span class="sv-price-sep">To</span>
+      <div class="sv-price-field">
+        <span>$</span>
+        <input type="text" id="sv-price-max" value="{{ max_price_cents | divided_by: 100.0 | ceil }}" aria-label="Max">
+      </div>
+    </div>
+  </div>
+</accordion-tab>
 
     {%- comment -%} Product status {%- endcomment -%}
     <accordion-tab open>
@@ -118,33 +119,40 @@
     {% if sv_show_search %}
       <div class="sv-product-search-wrap">
         <form
-          action="/search"
+          action="{{ routes.search_url }}"
           method="get"
           class="sv-product-search-form"
           role="search">
           {%- comment -%} Restrict Shopify search to products only {%- endcomment -%}
           <input type="hidden" name="type" value="product">
-          <div class="sv-product-search-field">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#888" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-              <circle cx="11" cy="11" r="8"/>
-              <line x1="21" y1="21" x2="16.65" y2="16.65"/>
-            </svg>
-            <input
-              type="search"
-              name="q"
-              id="sv-product-search"
-              value="{{ sv_search_query | escape }}"
-              placeholder="Search products…"
-              aria-label="Search products"
-              autocomplete="off">
-            {% if sv_search_query != '' %}
-              <button
-                type="button"
-                class="sv-search-clear-btn"
-                id="sv-search-clear"
-                aria-label="Clear search">✕</button>
-            {% endif %}
-          </div>
+         {%- comment -%} Locate the sv-product-search-field div and update it as follows: {%- endcomment -%}
+<div class="sv-product-search-field">
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#888" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+    <circle cx="11" cy="11" r="8"/>
+    <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+  </svg>
+  <input
+    type="search"
+    name="q"
+    id="sv-product-search"
+    value="{{ sv_search_query | escape }}"
+    placeholder="Search products…"
+    aria-label="Search products"
+    autocomplete="off"
+    role="combobox"
+    aria-expanded="false"
+    aria-owns="predictive-search-results"
+    aria-controls="predictive-search-results"
+    aria-haspopup="listbox"
+    aria-autocomplete="list"
+  >
+  {%- comment -%} ADD THIS CONTAINER FOR LIVE PREDICTIVE RESULTS {%- endcomment -%}
+  <div id="predictive-search-results" tabindex="-1" class="sv-predictive-search-container"></div>
+  
+  {% if sv_search_query != '' %}
+    <button type="button" class="sv-search-clear-btn" id="sv-search-clear" aria-label="Clear search">✕</button>
+  {% endif %}
+</div>
           <button type="submit" class="sv-search-submit-btn">Search</button>
         </form>
       </div>
@@ -212,20 +220,15 @@
 
       <div class="sv-toolbar-right">
         <span>Show</span>
-        <select class="sv-per-page-select" id="sv-per-page" aria-label="Products per page">
-          <option value="12">12</option>
-          <option value="24">24</option>
-          <option value="48">48</option>
-        </select>
+      {%- comment -%} Update Pagination Select  {%- endcomment -%}
+<select class="sv-per-page-select" id="sv-per-page">
+  <option value="8" selected>8</option>
+  <option value="12">12</option>
+  <option value="24">24</option>
+</select>
       </div>
     </div>
 
-    {%- comment -%}
-      ── Product JSON data ──────────────────────────────────────────────────
-      All product data for the passed sv_products array is serialised here.
-      collection.js reads this once at load time; all filtering/sorting then
-      happens client-side with zero additional requests.
-    {%- endcomment -%}
     <script id="sv-all-products-data" type="application/json">
       [{%- for product in sv_products -%}
         {%- assign size_idx  = nil -%}

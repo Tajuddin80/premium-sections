@@ -14,31 +14,38 @@
     customElements.define("accordion-tab", AccordionTab);
   }
 
-  /* ── Load product data ── */
+  /* ── State Management & Data ── */
   let ALL_PRODUCTS = [];
   const dataEl = document.getElementById("sv-all-products-data");
   if (dataEl) {
     try {
       ALL_PRODUCTS = JSON.parse(dataEl.textContent);
     } catch (e) {
-      console.warn("sv-collection: could not parse product data", e);
+      console.error("sv-collection: could not parse product data", e);
     }
   }
 
-  const MAX_PRICE = ALL_PRODUCTS.reduce((m, p) => Math.max(m, p.price), 0) || 3000;
+  // Calculate dynamic bounds from actual product data
+  let MIN_PRICE = 0;
+  let MAX_PRICE = 3000;
 
-  /* ── Application state ── */
+  if (ALL_PRODUCTS.length > 0) {
+    MIN_PRICE = Math.floor(Math.min(...ALL_PRODUCTS.map((p) => p.price)));
+    MAX_PRICE = Math.ceil(Math.max(...ALL_PRODUCTS.map((p) => p.price)));
+  }
+
+  // Application state
   const state = {
-    searchQuery: "", // live search (search page only)
+    searchQuery: "",
     categories: [],
     sizes: [],
     colors: [],
     status: [],
-    priceMin: 0,
+    priceMin: MIN_PRICE,
     priceMax: MAX_PRICE,
     sort: "",
-    perPage: 12,
-    loadedCount: 12,
+    perPage: 8, // Set to 8 by default as requested
+    loadedCount: 8,
   };
 
   /* ── DOM refs ── */
@@ -54,12 +61,13 @@
   const priceMinInput = document.getElementById("sv-price-min");
   const priceMaxInput = document.getElementById("sv-price-max");
 
-  // Search page elements (null on collection page — all guarded below)
+  // Search page elements (null on collection page)
   const productSearchInput = document.getElementById("sv-product-search");
   const searchClearBtn = document.getElementById("sv-search-clear");
 
   /* ── Helpers ── */
   function escHtml(str) {
+    if (!str) return "";
     return String(str).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
   }
 
@@ -123,8 +131,6 @@
       });
       panel.insertBefore(createAccordionTab("Color", wrap), anchor);
     }
-
-    attachCheckboxEvents();
   })();
 
   /* ── Custom sort dropdown ── */
@@ -146,8 +152,10 @@
           triggerText.textContent = this.textContent;
           options.forEach((opt) => opt.classList.remove("selected"));
           this.classList.add("selected");
-          nativeSelect.value = this.getAttribute("data-value");
-          nativeSelect.dispatchEvent(new Event("change"));
+          if (nativeSelect) {
+            nativeSelect.value = this.getAttribute("data-value");
+            nativeSelect.dispatchEvent(new Event("change"));
+          }
           wrapper.classList.remove("open");
         });
       });
@@ -175,7 +183,7 @@
     if (statuses) state.status = statuses.split(",").filter(Boolean);
 
     const pMin = p.get("price_min");
-    if (pMin !== null && pMin !== "") state.priceMin = parseFloat(pMin) || 0;
+    if (pMin !== null && pMin !== "") state.priceMin = parseFloat(pMin) || MIN_PRICE;
 
     const pMax = p.get("price_max");
     if (pMax !== null && pMax !== "") state.priceMax = parseFloat(pMax) || MAX_PRICE;
@@ -184,11 +192,8 @@
     if (sort) state.sort = sort;
 
     const perPage = p.get("per_page");
-    if (perPage) state.perPage = parseInt(perPage) || 12;
+    if (perPage) state.perPage = parseInt(perPage) || 8;
 
-    // On the search page the initial query comes from the input's value
-    // (pre-filled by Liquid from search.terms). We read it here so the
-    // client-side filter starts in sync with the server-rendered results.
     if (productSearchInput) {
       state.searchQuery = productSearchInput.value.toLowerCase().trim();
     }
@@ -212,7 +217,7 @@
   /* ── Filter products ── */
   function getFilteredProducts() {
     return ALL_PRODUCTS.filter(function (p) {
-      /* ① Text search (search page only — ignored when empty) */
+      /* ① Text search */
       if (state.searchQuery) {
         const q = state.searchQuery;
         const inTitle = (p.title || "").toLowerCase().includes(q);
@@ -271,7 +276,7 @@
       case "date-asc":
         return s.sort((a, b) => (a.published_at || 0) - (b.published_at || 0));
       default:
-        return s; // best-selling / featured = original order
+        return s;
     }
   }
 
@@ -309,6 +314,8 @@
 
     const filtered = sortProducts(getFilteredProducts());
     const toShow = filtered.slice(0, state.loadedCount);
+
+    if (!gridEl) return;
 
     if (toShow.length === 0) {
       gridEl.innerHTML = `<div class="sv-no-results">No products match your filters.</div>`;
@@ -350,7 +357,7 @@
   /* ── Per-page selector ── */
   if (perPageSel) {
     perPageSel.addEventListener("change", function () {
-      state.perPage = parseInt(this.value) || 12;
+      state.perPage = parseInt(this.value) || 8;
       renderGrid(true);
     });
   }
@@ -363,15 +370,76 @@
     });
   }
 
-  /* ── Live client-side search (search page only) ── */
+  /* ── Live Predictive Search (search page only) ── */
   if (productSearchInput) {
+    let debounceTimer;
+    const predictiveResults = document.getElementById("predictive-search-results");
+
     productSearchInput.addEventListener("input", function () {
-      state.searchQuery = this.value.toLowerCase().trim();
+      const query = this.value.trim();
+
+      // Instant local filter update
+      state.searchQuery = query.toLowerCase();
       renderGrid(true);
 
-      // Show/hide the clear button dynamically
+      // Debounced API call to Shopify Predictive Search
+      clearTimeout(debounceTimer);
+
+      if (query.length < 3) {
+        if (predictiveResults) predictiveResults.innerHTML = "";
+        return;
+      }
+
+      debounceTimer = setTimeout(() => {
+        fetchLiveResults(query);
+      }, 300);
+
       if (searchClearBtn) {
-        searchClearBtn.style.display = this.value ? "" : "none";
+        searchClearBtn.style.display = query ? "" : "none";
+      }
+    });
+  }
+
+  async function fetchLiveResults(query) {
+    try {
+      const response = await fetch(
+        `/search/suggest.json?q=${encodeURIComponent(query)}&resources[type]=product&resources[options][unavailable_products]=hide`,
+      );
+
+      if (!response.ok) return;
+
+      const data = await response.json();
+      const products = data.resources.results.products;
+
+      if (products.length > 0) {
+        updateProductPool(products);
+        renderGrid(false);
+      }
+    } catch (error) {
+      console.error("Predictive search error:", error);
+    }
+  }
+
+  function updateProductPool(newProducts) {
+    newProducts.forEach((apiProduct) => {
+      const exists = ALL_PRODUCTS.find((p) => p.handle === apiProduct.handle);
+      if (!exists) {
+        ALL_PRODUCTS.push({
+          id: apiProduct.id,
+          title: apiProduct.title,
+          handle: apiProduct.handle,
+          url: apiProduct.url,
+          price: parseFloat(apiProduct.price) || 0,
+          compare_at_price: parseFloat(apiProduct.compare_at_price) || 0,
+          available: apiProduct.available,
+          on_sale: apiProduct.compare_at_price > apiProduct.price,
+          image: apiProduct.image,
+          collections: [],
+          sizes: [],
+          colors: [],
+          type: apiProduct.type,
+          tags: [],
+        });
       }
     });
   }
@@ -424,7 +492,7 @@
     const thumbMin = document.getElementById("sv-thumb-min");
     const thumbMax = document.getElementById("sv-thumb-max");
 
-    if (!track) return;
+    if (!track || MAX_PRICE === 0) return;
 
     let dragging = null;
     let pctMin = state.priceMin / MAX_PRICE;
@@ -530,7 +598,6 @@
       chipsEl.appendChild(chip);
     }
 
-    // Search query chip
     if (state.searchQuery) {
       addChip(`Search: "${state.searchQuery}"`, function () {
         state.searchQuery = "";
@@ -580,6 +647,7 @@
       });
     });
 
+    // Only show price chip if we aren't displaying the full default range
     if (state.priceMin > 0 || state.priceMax < MAX_PRICE) {
       addChip(`$${state.priceMin} – $${state.priceMax}`, function () {
         state.priceMin = 0;
@@ -633,8 +701,11 @@
     btn.addEventListener("click", function () {
       document.querySelectorAll("[data-sv-grid]").forEach((b) => b.classList.remove("sv-active"));
       btn.classList.add("sv-active");
-      allGridClasses.forEach((c) => gridEl.classList.remove(c));
-      gridEl.classList.add(btn.getAttribute("data-sv-grid"));
+
+      if (gridEl) {
+        allGridClasses.forEach((c) => gridEl.classList.remove(c));
+        gridEl.classList.add(btn.getAttribute("data-sv-grid"));
+      }
     });
   });
 

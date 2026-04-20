@@ -2,9 +2,18 @@ class PredictiveSearch {
   constructor(container) {
     this.container = container;
 
-    // Config
+    // Config (pulled from Liquid data attributes)
     this.apiUrl = container.dataset.url;
-    this.moneyFormat = JSON.parse(container.dataset.moneyFormat || '""');
+
+    // Safely parse the money format
+    try {
+      // Unescape HTML entities first in case Liquid escaped quotes
+      const unescapedFormat = container.dataset.moneyFormat.replace(/&quot;/g, '"');
+      this.moneyFormat = JSON.parse(unescapedFormat || '""');
+    } catch (e) {
+      console.warn("Failed to parse money format", e);
+      this.moneyFormat = "${{amount}}";
+    }
 
     // Elements (scoped)
     this.icon = container.querySelector(".sv-search-icon");
@@ -20,7 +29,9 @@ class PredictiveSearch {
     this.currentFocus = -1;
     this.lastQuery = "";
 
-    this.init();
+    if (this.input) {
+      this.init();
+    }
   }
 
   /* ================= INIT ================= */
@@ -99,6 +110,7 @@ class PredictiveSearch {
     this.debounceTimer = setTimeout(async () => {
       try {
         const data = await this.fetchSuggestions(q);
+        // Only render if the user hasn't typed more while fetching
         if (this.input.value.trim() === q) {
           this.renderResults(data, q);
         }
@@ -140,7 +152,7 @@ class PredictiveSearch {
     const collections = results.collections || [];
 
     if (!products.length && !collections.length) {
-      this.dropdown.innerHTML = `<p>No results for "${query}"</p>`;
+      this.dropdown.innerHTML = `<p class="sv-search-status">No results for "<strong>${this.esc(query)}</strong>"</p>`;
       return this.dropdown.classList.add("sv-open");
     }
 
@@ -157,10 +169,11 @@ class PredictiveSearch {
       addSection("Products");
 
       products.forEach((p) => {
+        const priceValue = p.price || p.price_min || 0;
         const card = this.buildCard({
           title: p.title,
-          sub: p.price ? this.formatMoney(p.price) : "",
-          img: p.image?.url,
+          sub: priceValue ? this.formatMoney(priceValue) : "",
+          img: p.image?.url || p.featured_image?.url || p.featured_image,
           url: p.url,
         });
         this.dropdown.appendChild(card);
@@ -169,19 +182,32 @@ class PredictiveSearch {
     }
 
     if (collections.length) {
+      if (products.length) {
+        const div = document.createElement("div");
+        div.className = "sv-dropdown-divider";
+        this.dropdown.appendChild(div);
+      }
+
       addSection("Collections");
 
       collections.forEach((c) => {
         const card = this.buildCard({
           title: c.title,
           sub: `${c.products_count || 0} products`,
-          img: c.image?.url,
+          img: c.image?.url || c.featured_image?.url || c.featured_image,
           url: c.url,
         });
         this.dropdown.appendChild(card);
         allCards.push(card);
       });
     }
+
+    // View all link
+    const viewAll = document.createElement("a");
+    viewAll.className = "sv-view-all";
+    viewAll.textContent = `View all results for "${query}"`;
+    viewAll.href = `/search?q=${encodeURIComponent(query)}&type=product,article,page`;
+    this.dropdown.appendChild(viewAll);
 
     this.dropdown._cards = allCards;
     this.dropdown.classList.add("sv-open");
@@ -190,18 +216,31 @@ class PredictiveSearch {
   buildCard({ title, sub, img, url }) {
     const el = document.createElement("div");
     el.className = "sv-result-card";
+    el.setAttribute("role", "option");
+    el.tabIndex = -1;
+
+    const imgHtml = img
+      ? `<img class="sv-result-card__img" src="${this.esc(img)}" alt="${this.esc(title)}" loading="lazy" />`
+      : `<div class="sv-result-card__img-placeholder">🛍</div>`;
 
     el.innerHTML = `
-      ${img ? `<img src="${img}" />` : ""}
-      <div>
-        <div>${this.esc(title)}</div>
-        ${sub ? `<div>${this.esc(sub)}</div>` : ""}
+      ${imgHtml}
+      <div class="sv-result-card__body">
+        <div class="sv-result-card__title">${this.esc(title)}</div>
+        ${sub ? `<div class="sv-result-card__sub">${this.esc(sub)}</div>` : ""}
       </div>
     `;
 
     el.addEventListener("click", () => {
       window.location.href = url;
     });
+
+    el.addEventListener("mouseenter", () => {
+      (this.dropdown._cards || []).forEach((c) => c.classList.remove("sv-focused"));
+      el.classList.add("sv-focused");
+    });
+
+    el.addEventListener("mouseleave", () => el.classList.remove("sv-focused"));
 
     return el;
   }
@@ -221,8 +260,10 @@ class PredictiveSearch {
     }
 
     if (e.key === "Enter") {
-      if (cards[this.currentFocus]) {
+      if (this.currentFocus >= 0 && cards[this.currentFocus]) {
         cards[this.currentFocus].click();
+      } else if (this.input.value.trim()) {
+        window.location.href = `/search?q=${encodeURIComponent(this.input.value.trim())}&type=product,article,page`;
       }
     }
 
@@ -235,31 +276,40 @@ class PredictiveSearch {
     const cards = this.dropdown._cards || [];
 
     cards.forEach((c) => c.classList.remove("sv-focused"));
-
     this.currentFocus = index;
 
     if (cards[index]) {
       cards[index].classList.add("sv-focused");
+      cards[index].scrollIntoView({ block: "nearest" });
     }
   }
 
   /* ================= UTILS ================= */
   formatMoney(cents) {
-    const symbol = this.moneyFormat.replace(/\{\{.*?\}\}/, "").trim();
-    return symbol + (cents / 100).toFixed(2);
+    if (!cents && cents !== 0) return "";
+    // Strip out the {{amount}} part and any stray letters to just get the symbol
+    const symbol =
+      this.moneyFormat
+        .replace(/\{\{.*?\}\}/, "")
+        .replace(/[a-zA-Z\s]/g, "")
+        .trim() || "$";
+    const amount = (cents / 100).toFixed(2);
+    return symbol + amount;
   }
 
   esc(str) {
-    return String(str).replace(/&/g, "&amp;").replace(/</g, "&lt;");
+    return String(str).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
   }
 
   showError() {
-    this.dropdown.innerHTML = `<p>Something went wrong</p>`;
+    this.dropdown.innerHTML = `<p class="sv-search-status">Something went wrong. Please try again.</p>`;
     this.dropdown.classList.add("sv-open");
   }
 }
 
 /* ================= INIT ================= */
-document.querySelectorAll(".sv-search-container").forEach((el) => {
-  new PredictiveSearch(el);
+document.addEventListener("DOMContentLoaded", () => {
+  document.querySelectorAll(".sv-search-container").forEach((el) => {
+    new PredictiveSearch(el);
+  });
 });
