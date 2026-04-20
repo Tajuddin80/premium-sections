@@ -300,16 +300,6 @@
     </div>
 
     {%- comment -%} ── Load more / progress ── {%- endcomment -%}
-    <div class="sv-load-more-wrap" id="sv-load-more-wrap">
-      <p class="sv-progress-label">
-        Showing <span id="sv-showing-count">12</span>
-        of <span id="sv-total-count">{{ sv_products.size }}</span> items
-      </p>
-      <div class="sv-progress-bar">
-        <div class="sv-progress-bar-fill" id="sv-progress-fill"></div>
-      </div>
-      <button class="sv-load-more-btn" id="sv-load-more-btn">LOAD MORE</button>
-    </div>
-
+    {%  render 'show-more' current_product_count: current_product_count, total_product_count: total_product_count %} 
   </div>
 </section>
