@@ -1,0 +1,24 @@
+    {% comment %} <div class="sv-load-more-wrap" id="sv-load-more-wrap">
+      <p class="sv-progress-label">
+        Showing <span id="sv-showing-count">12</span>
+        of <span id="sv-total-count">{{ sv_products.size }}</span> items
+      </p>
+      <div class="sv-progress-bar">
+        <div class="sv-progress-bar-fill" id="sv-progress-fill"></div>
+      </div>
+      <button class="sv-load-more-btn" id="sv-load-more-btn">LOAD MORE</button>
+    </div> {% endcomment %}
+
+
+    <!-- show-more.liquid snippet -->
+
+<div class="sv-load-more-wrap" id="sv-load-more-wrap">
+  <p class="sv-progress-label">
+    Showing <span id="sv-showing-count">{{ current_product_count }}</span>
+    of <span id="sv-total-count">{{ total_product_count }}</span> items
+  </p>
+  <div class="sv-progress-bar">
+    <div class="sv-progress-bar-fill" id="sv-progress-fill"></div>
+  </div>
+  <button class="sv-load-more-btn" id="sv-load-more-btn">LOAD MORE</button>
+</div>
