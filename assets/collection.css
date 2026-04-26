@@ -5,16 +5,15 @@
   right: 0;
   background: #fff;
   z-index: 100;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
   max-height: 400px;
   overflow-y: auto;
   border-radius: 0 0 4px 4px;
 }
 
 .sv-product-search-field {
-  position: relative; /* Ensure the container anchors correctly */
+  position: relative;
 }
-
 
 .sv-page-title {
   margin: 1rem 1rem 0.25rem;
@@ -840,8 +839,6 @@ accordion-tab[open] .sv-filter-body {
 .sv-hidden {
   display: none !important;
 }
-
-
 
 /* TODO fix: hide 3-col and 4-col grid buttons on mobile */
 @media (max-width: 768px) {

@@ -48,33 +48,33 @@
         {% endif %}
       </div>
     </accordion-tab>
-      {% endunless %}
+{% endunless %}
 
 
    {%- comment -%} Update the Price Accordion Tab [cite: 8, 9, 10] {%- endcomment -%}
-<accordion-tab open>
-  <h3 data-header class="sv-filter-header">Price <span class="sv-toggle-icon">−</span></h3>
-  <div data-content class="sv-filter-body">
-    <div class="sv-price-slider-wrap">
-      <div class="sv-price-track">
-        <div class="sv-price-fill" id="sv-price-fill"></div>
-        <div class="sv-price-thumb sv-price-thumb--left" id="sv-thumb-min"></div>
-        <div class="sv-price-thumb sv-price-thumb--right" id="sv-thumb-max"></div>
+    <accordion-tab open>
+      <h3 data-header class="sv-filter-header">Price <span class="sv-toggle-icon">−</span></h3>
+      <div data-content class="sv-filter-body">
+        <div class="sv-price-slider-wrap">
+          <div class="sv-price-track">
+            <div class="sv-price-fill" id="sv-price-fill"></div>
+            <div class="sv-price-thumb sv-price-thumb--left" id="sv-thumb-min"></div>
+            <div class="sv-price-thumb sv-price-thumb--right" id="sv-thumb-max"></div>
+          </div>
+        </div>
+        <div class="sv-price-inputs">
+          <div class="sv-price-field">
+            <span>$</span>
+            <input type="text" id="sv-price-min" value="{{ min_price_cents | divided_by: 100.0 | floor }}" aria-label="Min">
+          </div>
+          <span class="sv-price-sep">To</span>
+          <div class="sv-price-field">
+            <span>$</span>
+            <input type="text" id="sv-price-max" value="{{ max_price_cents | divided_by: 100.0 | ceil }}" aria-label="Max">
+          </div>
+        </div>
       </div>
-    </div>
-    <div class="sv-price-inputs">
-      <div class="sv-price-field">
-        <span>$</span>
-        <input type="text" id="sv-price-min" value="{{ min_price_cents | divided_by: 100.0 | floor }}" aria-label="Min">
-      </div>
-      <span class="sv-price-sep">To</span>
-      <div class="sv-price-field">
-        <span>$</span>
-        <input type="text" id="sv-price-max" value="{{ max_price_cents | divided_by: 100.0 | ceil }}" aria-label="Max">
-      </div>
-    </div>
-  </div>
-</accordion-tab>
+    </accordion-tab>
 
     {%- comment -%} Product status {%- endcomment -%}
     <accordion-tab open>
@@ -107,7 +107,6 @@
     </accordion-tab>
 
     {%- comment -%} Size & Color accordion-tabs are injected by collection.js {%- endcomment -%}
-
     <button class="sv-reset-btn" id="sv-reset-filters">Reset filters</button>
 
   </aside>

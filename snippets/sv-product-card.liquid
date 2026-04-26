@@ -1,0 +1,31 @@
+ <div class="sv-product-card" data-product-id="{{ product.id }}">
+          <a href="{{ product.url }}" class="sv-card-link">
+            <div class="sv-card-image">
+              {% if product.featured_image %}
+                <img
+                  src="{{ product.featured_image | image_url: width: 300 }}"
+                  alt="{{ product.title | escape }}"
+                  loading="lazy"
+                  width="300"
+                  height="300">
+              {% endif %}
+            </div>
+            <div class="sv-card-info">
+              <div class="sv-card-info-main">
+                <h4 class="sv-card-title">{{ product.title }}</h4>
+                <div class="sv-card-price">
+                  {{ product.price | money }}
+                  {% if product.compare_at_price > product.price %}
+                    <span class="sv-price-original">{{ product.compare_at_price | money }}</span>
+                  {% endif %}
+                </div>
+              </div>
+              <div class="sv-card-rating">
+                <svg width="12" height="12" viewBox="0 0 12 12" fill="#f5a623">
+                  <path d="M6 1l1.5 3h3l-2.4 1.8.9 3L6 7.2 3 8.8l.9-3L1.5 4h3z"/>
+                </svg>
+                4.5 (189)
+              </div>
+            </div>
+          </a>
+        </div>

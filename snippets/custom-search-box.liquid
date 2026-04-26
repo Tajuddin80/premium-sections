@@ -1,0 +1,745 @@
+<style>
+    /* Devsquad */
+
+      /* newly added by devSquad*/
+        /* ── Search wrapper ── */
+        .sv-search-container {
+          display: flex;
+          align-items: center;
+          position: relative;
+        }
+
+        /* ── Search toggle icon — pure icon, zero button chrome ── */
+        .sv-search-icon {
+          display: flex;
+          align-items: center;
+          cursor: pointer;
+          background: none;
+          border: none;
+          padding: 0;
+          margin: 0;
+          outline: none;
+          box-shadow: none;
+          -webkit-appearance: none;
+          flex-shrink: 0;
+          transition: opacity 0.25s ease
+          , transform 0.25s ease;
+        }
+
+        .sv-search-icon.sv-hidden {
+          opacity: 0;
+          pointer-events: none;
+          transform: scale(0.7);
+        }
+
+        /* ── Input wrapper (clips the right-to-left expansion) ── */
+        .sv-search-input-wrapper {
+          overflow: hidden;
+          width: 0;
+          transition: width 0.42s cubic-bezier(0.4, 0, 0.2, 1);
+          display: flex;
+          align-items: center;
+          position: relative;
+        }
+
+        .sv-search-input-wrapper.sv-active {
+          width: 260px;
+        }
+
+        /* ── Input field ── */
+      .sv-search-input {
+      width: 260px;
+      padding: 0.46rem 2rem 0.46rem 1rem;
+      border: 1.5px solid #e30048;
+      border-radius: 999px;
+      font-size: 0.875rem;
+      outline: none;
+      background: #fff;
+      color: #111;
+      transition: border-color 0.2s ease
+          , box-shadow 0.2s ease;
+  }
+
+        {% comment %} .sv-search-input:focus {
+          border-color: #9ca3af;
+          box-shadow: 0 0 0 3px rgba(0, 0, 0, 0.06);
+        } {% endcomment %}
+
+        /* ── Close × — inline icon, no button look ── */
+        .sv-search-close {
+          position: absolute;
+          right: 10px;
+          top: 50%;
+          transform: translateY(-50%);
+          width: 18px;
+          height: 18px;
+          background: #e5e7eb;
+          border: none;
+          border-radius: 50%;
+          cursor: pointer;
+          display: none;
+          align-items: center;
+          justify-content: center;
+          padding: 0;
+          line-height: 1;
+          color: #6b7280;
+          font-size: 0.65rem;
+          transition: background 0.15s
+          , color 0.15s;
+          flex-shrink: 0;
+        }
+
+        .sv-search-close:hover {
+          background: #d1d5db;
+          color: #111;
+        }
+
+        .sv-search-close.sv-visible {
+          display: flex;
+        }
+
+        /* ── Dropdown panel ── */
+
+      .sv-search-dropdown {
+          position: absolute;
+          top: calc(100% + 10px);
+          right: -100px;
+          width: 360px;
+          max-height: 480px;
+          overflow-y: auto;
+          background: #fff;
+          border: 1px solid #e5e7eb;
+          border-radius: 16px;
+          box-shadow: 0 16px 48px #0000001f;
+          z-index: 9999;
+          display: none;
+          flex-direction: column;
+          animation: sv-fadeSlideIn .18s ease;
+          scrollbar-width: thin;
+          scrollbar-color: #e5e7eb transparent;
+      }
+        .sv-search-dropdown::-webkit-scrollbar {
+          width: 4px;
+        }
+        .sv-search-dropdown::-webkit-scrollbar-thumb {
+          background: #e5e7eb;
+          border-radius: 4px;
+        }
+
+        @keyframes sv-fadeSlideIn {
+          from {
+            opacity: 0;
+            transform: translateY(-6px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+
+        .sv-search-dropdown.sv-open {
+          display: flex;
+        }
+
+        /* ── Section heading ── */
+        .sv-dropdown-section-title {
+          padding: 12px 14px 4px;
+          font-size: 0.68rem;
+          font-weight: 700;
+          letter-spacing: 0.09em;
+          text-transform: uppercase;
+          color: #9ca3af;
+        }
+
+        /* ── Individual result card ── */
+        .sv-result-card {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          padding: 9px 14px;
+          cursor: pointer;
+          transition: background 0.12s ease;
+          color: inherit;
+        }
+
+        .sv-result-card:hover,
+        .sv-result-card.sv-focused {
+          background: #f9fafb;
+        }
+
+        .sv-result-card__img {
+          width: 50px;
+          height: 50px;
+          object-fit: cover;
+          border-radius: 10px;
+          border: 1px solid #f3f4f6;
+          flex-shrink: 0;
+          background: #f9fafb;
+        }
+
+        .sv-result-card__img-placeholder {
+          width: 50px;
+          height: 50px;
+          border-radius: 10px;
+          background: #f3f4f6;
+          flex-shrink: 0;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 1.3rem;
+        }
+
+        .sv-result-card__body {
+          flex: 1;
+          min-width: 0;
+        }
+
+        .sv-result-card__title {
+          font-size: 0.875rem;
+          font-weight: 600;
+          color: #111827;
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+        }
+
+        .sv-result-card__sub {
+          font-size: 0.775rem;
+          color: #6b7280;
+          margin-top: 2px;
+        }
+
+        .sv-result-card__badge {
+          font-size: 0.68rem;
+          font-weight: 700;
+          color: #4f46e5;
+          background: #ede9fe;
+          border-radius: 999px;
+          padding: 3px 9px;
+          flex-shrink: 0;
+          white-space: nowrap;
+        }
+
+        /* ── Shimmer loading cards ── */
+        .sv-shimmer-card {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          padding: 9px 14px;
+        }
+
+        .sv-shimmer-img {
+          width: 50px;
+          height: 50px;
+          border-radius: 10px;
+          background: linear-gradient(90deg, #f3f4f6 25%, #e5e7eb 50%, #f3f4f6 75%);
+          background-size: 200% 100%;
+          animation: sv-shimmer 1.2s infinite;
+          flex-shrink: 0;
+        }
+
+        .sv-shimmer-body {
+          flex: 1;
+          display: flex;
+          flex-direction: column;
+          gap: 6px;
+        }
+
+        .sv-shimmer-line {
+          height: 10px;
+          border-radius: 6px;
+          background: linear-gradient(90deg, #f3f4f6 25%, #e5e7eb 50%, #f3f4f6 75%);
+          background-size: 200% 100%;
+          animation: sv-shimmer 1.2s infinite;
+        }
+
+        .sv-shimmer-line--short {
+          width: 40%;
+        }
+
+        @keyframes sv-shimmer {
+          0% {
+            background-position: 200% 0;
+          }
+          100% {
+            background-position: -200% 0;
+          }
+        }
+
+        /* ── Divider ── */
+        .sv-dropdown-divider {
+          height: 1px;
+          background: #f3f4f6;
+          margin: 4px 0;
+        }
+
+        /* ── Status / empty ── */
+        .sv-search-status {
+          padding: 20px 14px;
+          font-size: 0.85rem;
+          color:rgb(20, 106, 255);
+          text-align: center;
+        }
+
+        /* ── View-all footer ── */
+        .sv-view-all {
+          display: block;
+          text-align: center;
+          padding: 11px;
+          font-size: 0.8rem;
+          font-weight: 600;
+          color: #4f46e5;
+          text-decoration: none;
+          border-top: 1px solid #f3f4f6;
+          transition: background 0.13s;
+          flex-shrink: 0;
+        }
+
+        .sv-view-all:hover {
+          background: #f5f3ff;
+        }
+
+        /* ── Responsive ── */
+        @media (max-width: 1024px) {
+          .sv-search-input-wrapper.sv-active {
+            width: 220px;
+          }
+          .sv-search-input {
+            width: 220px;
+          }
+          .sv-search-dropdown {
+            width: 320px;
+          }
+        }
+
+        @media (max-width: 768px) {
+          .sv-search-container{
+            display: none;
+          }
+        }
+
+        @media (max-width: 480px) {
+          .sv-search-container{
+            display: none;
+          }
+        }
+</style>
+
+<div class="sv-search-container" id="sv-search-container">
+  <svg
+    class="m-svg-icon--medium sv-search-icon"
+    id="sv-search-icon"
+    fill="currentColor"
+    xmlns="http://www.w3.org/2000/svg"
+    viewBox="0 0 315 315"
+  >
+    <path d="M214 193a135 135 0 0 1-21 21l95 95c3 3 7 4.5 11 4.5s8-1.5 11-4.5c6-6 6-15.5 0-21.5l-95-95zM110 0C49 0 0 49 0 110s49 110 110 110 110-49 110-110S171 0 110 0z"/>
+  </svg>
+
+  <div class="sv-search-input-wrapper" id="sv-search-wrapper">
+    <input
+      type="text"
+      id="sv-search-input"
+      class="sv-search-input"
+      placeholder="Search products & collections…"
+      autocomplete="off"
+      aria-label="Search"
+      aria-autocomplete="list"
+      aria-haspopup="listbox"
+    >
+    <button
+      class="sv-search-close"
+      id="sv-search-close"
+      aria-label="Clear search"
+    >
+      &#x2715;
+    </button>
+  </div>
+
+  <div
+    class="sv-search-dropdown"
+    id="sv-search-dropdown"
+    role="listbox"
+  ></div>
+</div>
+
+<script>
+  (function () {
+
+    /* ── DOM refs ── */
+    const icon     = document.getElementById('sv-search-icon');
+    const wrapper  = document.getElementById('sv-search-wrapper');
+    const input    = document.getElementById('sv-search-input');
+    const closeBtn = document.getElementById('sv-search-close');
+    const dropdown = document.getElementById('sv-search-dropdown');
+
+    let debounceTimer = null;
+    let currentFocus  = -1;
+    let isOpen        = false;
+    let lastQuery     = '';
+
+    const cachePredictive = {};
+    const cacheFullSearch = {};
+
+    /* ─────────────────────────────────────────────────────────────────
+     * HOW SEARCH WORKS
+     *
+     * Two parallel requests run on every keystroke:
+     *
+     *   Request A → /search/suggest.json  (fields=title,body)
+     *     Shopify Predictive Search API. Passing body alongside title
+     *     tells it to match against product descriptions too.
+     *     Fast, but depends on the Search & Discovery app having
+     *     "description" enabled as a searchable field in the store.
+     *
+     *   Request B → /search?view=json
+     *     Shopify's full storefront search engine rendered through our
+     *     search.json.liquid template. This always searches BOTH title
+     *     AND description by default — no admin config required.
+     *     This is the reliable source for description-based matches.
+     *
+     * Results are merged and deduplicated by product ID.
+     * Request B products that weren't in Request A are flagged
+     * "Matched in description" so the user understands why they appear.
+     * ───────────────────────────────────────────────────────────────── */
+
+    /* ── Request A: Predictive Search API (title + body) ── */
+    async function fetchPredictive(q) {
+      if (cachePredictive[q]) return cachePredictive[q];
+
+      const url =
+        `/search/suggest.json` +
+        `?q=${encodeURIComponent(q)}` +
+        `&resources[type]=product` +
+        `&resources[limit]=6` +
+        `&resources[options][fields]=title,body` +
+        `&resources[options][unavailable_products]=last`;
+
+      try {
+        const res = await fetch(url);
+        if (!res.ok) return [];
+        const data = await res.json();
+        cachePredictive[q] = data?.resources?.results?.products ?? [];
+        return cachePredictive[q];
+      } catch (e) {
+        console.warn('[sv-search] Predictive fetch failed:', e);
+        return [];
+      }
+    }
+
+    /* ── Request B: Full storefront search via search.json.liquid ──
+     *
+     * This is the RELIABLE description search path.
+     * It calls /search?q=...&type=product&view=json which renders
+     * templates/search.json.liquid — a plain JSON array of products.
+     * Shopify's full search engine indexes product descriptions by
+     * default, so this always finds description matches.
+     * ───────────────────────────────────────────────────────────────── */
+    async function fetchFullSearch(q) {
+      if (cacheFullSearch[q]) return cacheFullSearch[q];
+
+      const url =
+        `/search` +
+        `?q=${encodeURIComponent(q)}` +
+        `&type=product` +
+        `&view=json`;
+
+      try {
+        const res = await fetch(url);
+        if (!res.ok) return [];
+
+        const text = await res.text();
+
+        /* Guard: if Shopify returned HTML instead of JSON (e.g. the
+           view template is missing), fail gracefully.                */
+        const trimmed = text.trim();
+        if (!trimmed.startsWith('[') && !trimmed.startsWith('{')) {
+          console.warn('[sv-search] search.json.liquid returned non-JSON. Is the template in place?');
+          return [];
+        }
+
+        let data;
+        try {
+          data = JSON.parse(trimmed);
+        } catch (parseErr) {
+          console.warn('[sv-search] JSON parse error from search.json.liquid:', parseErr, '\nRaw response:', trimmed);
+          return [];
+        }
+
+        if (!Array.isArray(data)) return [];
+
+        const normalised = data.map(p => ({
+          id:             p.id,
+          title:          p.title,
+          url:            p.url,
+          price:          p.price,
+          featured_image: p.image
+        }));
+
+        cacheFullSearch[q] = normalised;
+        return normalised;
+      } catch (e) {
+        console.warn('[sv-search] Full search fetch failed:', e);
+        return [];
+      }
+    }
+
+    /* ── Merge & deduplicate by product ID ── */
+    function mergeResults(predictiveProducts, fullSearchProducts) {
+      const seen   = new Set();
+      const merged = [];
+
+      /* Predictive results first — these matched title or description
+         via the Predictive API                                         */
+      predictiveProducts.forEach(p => {
+        seen.add(String(p.id));
+        merged.push({ ...p, descMatch: false });
+      });
+
+      /* Full-search results — anything new here matched the description
+         (or title) via Shopify's full search engine                    */
+      fullSearchProducts.forEach(p => {
+        if (!seen.has(String(p.id))) {
+          seen.add(String(p.id));
+          merged.push({ ...p, descMatch: true });
+        }
+      });
+
+      return merged;
+    }
+
+    async function fetchSuggestions(q) {
+      const [predictiveProducts, fullSearchProducts] = await Promise.all([
+        fetchPredictive(q),
+        fetchFullSearch(q)
+      ]);
+      return mergeResults(predictiveProducts, fullSearchProducts);
+    }
+
+    /* ── Open / close ── */
+    function openSearch() {
+      isOpen = true;
+      icon.classList.add('sv-hidden');
+      wrapper.classList.add('sv-active');
+      requestAnimationFrame(() => input.focus());
+    }
+
+    function closeSearch() {
+      isOpen = false;
+      icon.classList.remove('sv-hidden');
+      wrapper.classList.remove('sv-active');
+      closeDropdown();
+      input.value = '';
+      closeBtn.classList.remove('sv-visible');
+      lastQuery = '';
+    }
+
+    function closeDropdown() {
+      dropdown.classList.remove('sv-open');
+      dropdown.innerHTML = '';
+      currentFocus = -1;
+      dropdown._cards = [];
+    }
+
+    icon.addEventListener('click', openSearch);
+    closeBtn.addEventListener('click', closeSearch);
+
+    input.addEventListener('input', () => {
+      closeBtn.classList.toggle('sv-visible', input.value.length > 0);
+    });
+
+    document.addEventListener('click', e => {
+      if (!document.getElementById('sv-search-container').contains(e.target)) {
+        if (isOpen) closeSearch();
+      }
+    });
+
+    /* ── Shimmer skeleton ── */
+    function showShimmer(count = 3) {
+      dropdown.innerHTML = '';
+      for (let i = 0; i < count; i++) {
+        dropdown.innerHTML += `
+          <div class="sv-shimmer-card">
+            <div class="sv-shimmer-img"></div>
+            <div class="sv-shimmer-body">
+              <div class="sv-shimmer-line"></div>
+              <div class="sv-shimmer-line sv-shimmer-line--short"></div>
+            </div>
+          </div>`;
+      }
+      dropdown.classList.add('sv-open');
+    }
+
+    /* ── Render results ── */
+    function renderResults(products, query) {
+      dropdown.innerHTML = '';
+      currentFocus = -1;
+
+      if (!products.length) {
+        dropdown.innerHTML = `<p class="sv-search-status">No results for "<strong>${escHtml(query)}</strong>"</p>`;
+        dropdown.classList.add('sv-open');
+        return;
+      }
+
+      const allCards = [];
+
+      dropdown.appendChild(sectionTitle('Products'));
+
+      products.forEach(p => {
+        const rawPrice = p.price ?? null;
+        const priceStr = rawPrice != null
+          ? new Intl.NumberFormat(undefined, {
+              style: 'currency',
+              currency: Shopify?.currency?.active || 'USD',
+              minimumFractionDigits: 0,
+              maximumFractionDigits: 0
+            }).format(parseFloat(rawPrice))
+          : '';
+
+        const imgSrc =
+          (p.image && typeof p.image === 'object' ? p.image.url : p.image) ||
+          (typeof p.featured_image === 'string'
+            ? p.featured_image
+            : p.featured_image?.url) ||
+          '';
+
+        const card = buildCard({
+          title:     p.title,
+          price:     priceStr,
+          descMatch: p.descMatch,
+          imgSrc,
+          url:       p.url
+        });
+
+        dropdown.appendChild(card);
+        allCards.push(card);
+      });
+
+      /* View-all footer */
+      const viewAll = document.createElement('a');
+      viewAll.className   = 'sv-view-all';
+      viewAll.textContent = `View all results for "${query}"`;
+      viewAll.href        = `/search?q=${encodeURIComponent(query)}&type=product,article,page`;
+      viewAll.addEventListener('click', e => {
+        e.preventDefault();
+        window.location.href = viewAll.href;
+      });
+      dropdown.appendChild(viewAll);
+
+      dropdown.classList.add('sv-open');
+      dropdown._cards = allCards;
+    }
+
+    /* ── Build card ── */
+    function buildCard({ title, price, descMatch, imgSrc, url }) {
+      const card = document.createElement('div');
+      card.className = 'sv-result-card';
+      card.setAttribute('role', 'option');
+      card.tabIndex = -1;
+
+      const imgHtml = imgSrc
+        ? `<img class="sv-result-card__img" src="${escAttr(imgSrc)}" alt="${escAttr(title)}" loading="lazy" />`
+        : `<div class="sv-result-card__img-placeholder">🛍</div>`;
+
+      let subHtml = price
+        ? `<div class="sv-result-card__sub">${escHtml(price)}</div>`
+        : '';
+
+      if (descMatch) {
+        subHtml += `<div class="sv-result-card__sub" style="font-style:italic;opacity:0.75;">Matched in description</div>`;
+      }
+
+      card.innerHTML = `
+        ${imgHtml}
+        <div class="sv-result-card__body">
+          <div class="sv-result-card__title">${escHtml(title)}</div>
+          ${subHtml}
+        </div>
+      `;
+
+      card.addEventListener('click', () => { window.location.href = url; });
+      card.addEventListener('mouseenter', () => {
+        (dropdown._cards || []).forEach(c => c.classList.remove('sv-focused'));
+        card.classList.add('sv-focused');
+      });
+      card.addEventListener('mouseleave', () => card.classList.remove('sv-focused'));
+      return card;
+    }
+
+    /* ── Keyboard nav ── */
+    function setFocus(index) {
+      const cards = dropdown._cards || [];
+      cards.forEach(c => c.classList.remove('sv-focused'));
+      currentFocus = index;
+      if (index >= 0 && cards[index]) {
+        cards[index].classList.add('sv-focused');
+        cards[index].scrollIntoView({ block: 'nearest' });
+      }
+    }
+
+    input.addEventListener('keydown', e => {
+      const cards = dropdown._cards || [];
+      if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        setFocus(Math.min(currentFocus + 1, cards.length - 1));
+      } else if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        setFocus(Math.max(currentFocus - 1, 0));
+      } else if (e.key === 'Enter') {
+        if (currentFocus >= 0 && cards[currentFocus]) {
+          cards[currentFocus].click();
+        } else if (input.value.trim()) {
+          window.location.href = `/search?q=${encodeURIComponent(input.value.trim())}&type=product,article,page`;
+        }
+      } else if (e.key === 'Escape') {
+        closeSearch();
+      }
+    });
+
+    /* ── Debounced input ── */
+    input.addEventListener('input', () => {
+      const q = input.value.trim();
+      if (!q) { closeDropdown(); return; }
+      if (q === lastQuery) return;
+
+      lastQuery = q;
+      showShimmer(3);
+
+      clearTimeout(debounceTimer);
+      debounceTimer = setTimeout(async () => {
+        try {
+          const products = await fetchSuggestions(q);
+          if (input.value.trim() === q) renderResults(products, q);
+        } catch (err) {
+          console.error('[sv-search]', err);
+          dropdown.innerHTML = '<p class="sv-search-status">Something went wrong. Please try again.</p>';
+          dropdown.classList.add('sv-open');
+        }
+      }, 160);
+    });
+
+    /* ── XSS helpers ── */
+    function escHtml(str) {
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+    }
+    function escAttr(str) { return escHtml(str); }
+
+    /* ── DOM builders ── */
+    function sectionTitle(text) {
+      const p = document.createElement('p');
+      p.className = 'sv-dropdown-section-title';
+      p.textContent = text;
+      return p;
+    }
+    function divider() {
+      const d = document.createElement('div');
+      d.className = 'sv-dropdown-divider';
+      return d;
+    }
+
+  })();
+</script>
