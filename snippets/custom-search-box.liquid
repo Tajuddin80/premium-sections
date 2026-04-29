@@ -726,6 +726,7 @@
         .replace(/>/g, '&gt;')
         .replace(/"/g, '&quot;');
     }
+
     function escAttr(str) { return escHtml(str); }
 
     /* ── DOM builders ── */
@@ -735,6 +736,8 @@
       p.textContent = text;
       return p;
     }
+
+  
     function divider() {
       const d = document.createElement('div');
       d.className = 'sv-dropdown-divider';

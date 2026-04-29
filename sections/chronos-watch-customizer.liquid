@@ -1,0 +1,973 @@
+{{ 'https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300;400;500;600;700&family=Outfit:wght@200;300;400;500;600&display=swap' | stylesheet_tag }}
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+
+{%- liquid
+  assign dial_blocks   = section.blocks | where: 'type', 'dial_color'
+  assign case_blocks   = section.blocks | where: 'type', 'case_material'
+  assign strap_blocks  = section.blocks | where: 'type', 'strap'
+  assign base_price    = section.settings.base_price | default: 12500
+  assign brand_name    = section.settings.brand_name  | default: 'CHRONOS'
+  assign section_id    = section.id
+-%}
+
+<style>
+  #chronos-{{ section_id }} {
+    --bg: {{ section.settings.color_bg }};
+    --fg: {{ section.settings.color_fg }};
+    --muted: {{ section.settings.color_muted }};
+    --accent: {{ section.settings.color_accent }};
+    --card: {{ section.settings.color_card }};
+    --border: {{ section.settings.color_border }};
+    --surface: {{ section.settings.color_surface }};
+
+    font-family: 'Outfit', sans-serif;
+    background: var(--bg);
+    color: var(--fg);
+    overflow: hidden;
+    height: 100vh;
+    position: relative;
+  }
+
+  #chronos-{{ section_id }} * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  #chronos-{{ section_id }} .font-display { font-family: 'Cormorant Garamond', serif; }
+
+  #chronos-{{ section_id }} ::-webkit-scrollbar { width: 3px; }
+  #chronos-{{ section_id }} ::-webkit-scrollbar-track { background: transparent; }
+  #chronos-{{ section_id }} ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+  #chronos-{{ section_id }} ::-webkit-scrollbar-thumb:hover { background: var(--muted); }
+
+  #chronos-{{ section_id }} .ch-swatch {
+    width: 34px; height: 34px; border-radius: 50%;
+    cursor: pointer; transition: all 0.3s ease;
+    border: 2px solid transparent; flex-shrink: 0;
+  }
+  #chronos-{{ section_id }} .ch-swatch:hover { transform: scale(1.15); }
+  #chronos-{{ section_id }} .ch-swatch.active {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(201,169,110,0.25);
+  }
+
+  #chronos-{{ section_id }} .ch-opt-card {
+    padding: 10px 14px; border-radius: 8px;
+    cursor: pointer; transition: all 0.3s ease;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    display: flex; align-items: center; gap: 10px;
+  }
+  #chronos-{{ section_id }} .ch-opt-card:hover { border-color: var(--muted); background: #1a1918; }
+  #chronos-{{ section_id }} .ch-opt-card.active {
+    border-color: var(--accent);
+    background: rgba(201,169,110,0.06);
+  }
+
+  #chronos-{{ section_id }} .ch-section-label {
+    font-size: 10px; font-weight: 600;
+    letter-spacing: 2.5px; text-transform: uppercase;
+    color: var(--accent); margin-bottom: 14px;
+  }
+  #chronos-{{ section_id }} .ch-divider {
+    height: 1px; margin: 20px 0;
+    background: linear-gradient(to right, transparent, var(--border), transparent);
+  }
+
+  #chronos-{{ section_id }} .ch-toast {
+    position: fixed; bottom: 30px; left: 50%;
+    transform: translateX(-50%) translateY(80px);
+    background: var(--card); border: 1px solid var(--accent);
+    color: var(--fg); padding: 12px 28px; border-radius: 8px;
+    font-size: 13px; z-index: 9999;
+    transition: transform 0.4s cubic-bezier(0.16,1,0.3,1);
+    backdrop-filter: blur(12px);
+    pointer-events: none;
+  }
+  #chronos-{{ section_id }} .ch-toast.show {
+    transform: translateX(-50%) translateY(0);
+  }
+
+  #chronos-{{ section_id }} .ch-viewer-hint {
+    position: absolute; bottom: 20px; left: 50%;
+    transform: translateX(-50%);
+    display: flex; align-items: center; gap: 8px;
+    color: var(--muted); font-size: 11px;
+    letter-spacing: 1.5px; opacity: 0;
+    animation: chHintIn-{{ section_id }} 0.8s ease 2.5s forwards;
+  }
+  @keyframes chHintIn-{{ section_id }} {
+    from { opacity: 0; transform: translateX(-50%) translateY(8px); }
+    to   { opacity: 0.5; transform: translateX(-50%) translateY(0); }
+  }
+
+  #chronos-{{ section_id }} .ch-btn-primary {
+    background: linear-gradient(135deg, var(--accent), #a08538);
+    color: #0a0a0a; font-weight: 600; padding: 12px 28px;
+    border-radius: 6px; border: none; cursor: pointer;
+    font-family: 'Outfit', sans-serif; font-size: 12px;
+    letter-spacing: 1.5px; text-transform: uppercase;
+    transition: all 0.3s ease; width: 100%;
+  }
+  #chronos-{{ section_id }} .ch-btn-primary:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 6px 24px rgba(201,169,110,0.3);
+  }
+
+  #chronos-{{ section_id }} .ch-btn-ghost {
+    background: transparent; color: var(--muted);
+    font-weight: 400; padding: 8px 16px;
+    border-radius: 6px; border: 1px solid var(--border);
+    cursor: pointer; font-family: 'Outfit', sans-serif;
+    font-size: 11px; letter-spacing: 1px;
+    text-transform: uppercase; transition: all 0.3s ease;
+  }
+  #chronos-{{ section_id }} .ch-btn-ghost:hover {
+    border-color: var(--accent); color: var(--accent);
+  }
+
+  #chronos-{{ section_id }} .ch-viewer {
+    position: relative;
+    background: radial-gradient(ellipse at 50% 45%, #16140f 0%, #060606 70%);
+    flex: 1;
+  }
+  #chronos-{{ section_id }} .ch-glow {
+    position: absolute; top: 50%; left: 50%;
+    transform: translate(-50%, -55%);
+    width: 340px; height: 340px; border-radius: 50%;
+    background: radial-gradient(circle, rgba(201,169,110,0.045) 0%, transparent 70%);
+    pointer-events: none;
+  }
+  #chronos-{{ section_id }} .ch-time-badge {
+    position: absolute; top: 20px; left: 24px;
+    font-weight: 200; font-size: 13px;
+    color: var(--muted); letter-spacing: 2px;
+  }
+  #chronos-{{ section_id }} .ch-price {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 30px; font-weight: 300;
+    color: var(--accent);
+  }
+  #chronos-{{ section_id }} nav {
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+  }
+
+  /* Layout */
+  #chronos-{{ section_id }} .ch-layout {
+    display: flex; height: calc(100vh - 56px); margin-top: 56px;
+  }
+  #chronos-{{ section_id }} canvas {
+    width: 100% !important; height: 100% !important; display: block;
+  }
+  #chronos-{{ section_id }} .ch-panel {
+    width: 380px; overflow-y: auto; border-left: 1px solid var(--border);
+    background: var(--card);
+  }
+  #chronos-{{ section_id }} .ch-sum-row {
+    display: flex; justify-content: space-between;
+    font-size: 12px; margin-bottom: 8px;
+    color: var(--muted);
+  }
+  #chronos-{{ section_id }} .ch-sum-row span:last-child { color: var(--fg); }
+  #chronos-{{ section_id }} .ch-sum-box {
+    border-radius: 8px; padding: 16px; margin-bottom: 16px;
+    background: var(--surface); border: 1px solid var(--border);
+  }
+
+  @media (max-width: 900px) {
+    #chronos-{{ section_id }} .ch-layout { flex-direction: column; }
+    #chronos-{{ section_id }} .ch-viewer { height: 50vh; flex: none; }
+    #chronos-{{ section_id }} .ch-panel { width: 100%; height: 50vh; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    #chronos-{{ section_id }} *, #chronos-{{ section_id }} *::before, #chronos-{{ section_id }} *::after {
+      animation-duration: 0s !important;
+      transition-duration: 0s !important;
+    }
+  }
+</style>
+
+<section id="chronos-{{ section_id }}">
+
+  <!-- Navigation -->
+  <nav style="position:fixed;top:0;left:0;right:0;z-index:50;height:56px;display:flex;align-items:center;justify-content:space-between;padding:0 24px;border-bottom:1px solid var(--border);background:rgba(6,6,6,0.8);">
+    <div style="display:flex;align-items:center;gap:12px;">
+      <span class="font-display" style="font-size:1.25rem;letter-spacing:0.2em;color:var(--accent);">
+        {{ brand_name }}
+      </span>
+      <span style="font-size:11px;letter-spacing:0.1em;color:var(--muted);">CUSTOMIZER</span>
+    </div>
+    <div style="display:flex;align-items:center;gap:12px;">
+      <button class="ch-btn-ghost" id="ch-reset-{{ section_id }}" aria-label="Reset configuration">
+        <i class="fa-solid fa-rotate-left" style="margin-right:4px;"></i> Reset
+      </button>
+      <button class="ch-btn-primary" style="width:auto;" id="ch-save-{{ section_id }}" aria-label="Save configuration">
+        <i class="fa-solid fa-bookmark" style="margin-right:4px;"></i> Save
+      </button>
+    </div>
+  </nav>
+
+  <!-- Main Layout -->
+  <div class="ch-layout">
+
+    <!-- 3D Viewer -->
+    <div class="ch-viewer" id="ch-viewer-{{ section_id }}">
+      <div class="ch-glow"></div>
+      <canvas id="ch-canvas-{{ section_id }}"></canvas>
+      <div class="ch-time-badge" id="ch-time-{{ section_id }}">00:00:00</div>
+      <div class="ch-viewer-hint">
+        <i class="fa-solid fa-arrows-rotate" style="font-size:10px;"></i>
+        <span>DRAG TO ROTATE</span>
+      </div>
+    </div>
+
+    <!-- Customization Panel -->
+    <aside class="ch-panel">
+      <div style="padding:24px;">
+
+        <h2 class="font-display" style="font-size:1.5rem;font-weight:300;margin-bottom:4px;color:var(--fg);">
+          {{ section.settings.heading | default: 'Design Your Timepiece' }}
+        </h2>
+        <p style="font-size:12px;margin-bottom:24px;color:var(--muted);letter-spacing:0.5px;">
+          {{ section.settings.subheading | default: 'Configure every detail to your preference!' }}
+        </p>
+
+        <!-- Dial Section -->
+        <div class="ch-section-label">Dial Color</div>
+        <div style="display:flex;flex-wrap:wrap;gap:12px;" id="ch-dial-swatches-{{ section_id }}">
+          {%- for block in dial_blocks -%}
+            <div
+              class="ch-swatch{% if forloop.first %} active{% endif %}"
+              data-group="dial"
+              data-idx="{{ forloop.index0 }}"
+              style="background:{{ block.settings.color }};"
+              title="{{ block.settings.name }}"
+              role="button"
+              aria-label="{{ block.settings.name }}"
+              {{ block.shopify_attributes }}
+            ></div>
+          {%- endfor -%}
+        </div>
+        <p style="font-size:12px;margin-top:8px;color:var(--muted);" id="ch-dial-label-{{ section_id }}">
+          {{ dial_blocks.first.settings.name | default: 'Midnight Blue' }}
+        </p>
+
+        <div class="ch-divider"></div>
+
+        <!-- Case Material -->
+        <div class="ch-section-label">Case Material</div>
+        <div style="display:flex;flex-direction:column;gap:8px;" id="ch-case-opts-{{ section_id }}">
+          {%- for block in case_blocks -%}
+            {%- assign price_label = block.settings.price | plus: 0 -%}
+            <div
+              class="ch-opt-card{% if forloop.first %} active{% endif %}"
+              data-group="case"
+              data-key="{{ block.settings.id }}"
+              role="button"
+              aria-label="{{ block.settings.name }}"
+              {{ block.shopify_attributes }}
+            >
+              <div style="width:20px;height:20px;border-radius:50%;background:{{ block.settings.color }};flex-shrink:0;border:1px solid rgba(255,255,255,0.1);"></div>
+              <div style="flex:1;min-width:0;">
+                <div style="font-size:12px;font-weight:500;color:var(--fg);">{{ block.settings.name }}</div>
+                <div style="font-size:10px;color:var(--muted);">
+                  {%- if price_label > 0 -%}+${{ price_label | money_without_currency }}{%- else -%}Included{%- endif -%}
+                </div>
+              </div>
+            </div>
+          {%- endfor -%}
+        </div>
+
+        <div class="ch-divider"></div>
+
+        <!-- Strap -->
+        <div class="ch-section-label">Strap</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;" id="ch-strap-opts-{{ section_id }}">
+          {%- for block in strap_blocks -%}
+            {%- assign strap_price = block.settings.price | plus: 0 -%}
+            <div
+              class="ch-opt-card{% if forloop.first %} active{% endif %}"
+              data-group="strap"
+              data-key="{{ block.settings.id }}"
+              role="button"
+              aria-label="{{ block.settings.name }}"
+              {{ block.shopify_attributes }}
+            >
+              <div style="width:16px;height:16px;border-radius:3px;background:{{ block.settings.color }};flex-shrink:0;border:1px solid rgba(255,255,255,0.08);"></div>
+              <div style="min-width:0;">
+                <div style="font-size:11px;font-weight:500;color:var(--fg);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ block.settings.name }}</div>
+                <div style="font-size:9px;color:var(--muted);">
+                  {%- if strap_price > 0 -%}+${{ strap_price | money_without_currency }}{%- else -%}Included{%- endif -%}
+                </div>
+              </div>
+            </div>
+          {%- endfor -%}
+        </div>
+
+        <div class="ch-divider"></div>
+
+        <!-- Summary -->
+        <div class="ch-section-label">Configuration</div>
+        <div class="ch-sum-box">
+          <div class="ch-sum-row"><span>Dial</span><span id="ch-sum-dial-{{ section_id }}">{{ dial_blocks.first.settings.name | default: 'Midnight Blue' }}</span></div>
+          <div class="ch-sum-row"><span>Case</span><span id="ch-sum-case-{{ section_id }}">{{ case_blocks.first.settings.name | default: 'Stainless Steel' }}</span></div>
+          <div class="ch-sum-row" style="margin-bottom:12px;"><span>Strap</span><span id="ch-sum-strap-{{ section_id }}">{{ strap_blocks.first.settings.name | default: 'Calfskin Brown' }}</span></div>
+          <div style="display:flex;justify-content:space-between;align-items:flex-end;">
+            <span style="font-size:12px;color:var(--muted);">Total</span>
+            <span class="ch-price" id="ch-sum-price-{{ section_id }}">${{ base_price | money_without_currency }}</span>
+          </div>
+        </div>
+
+        <button class="ch-btn-primary" id="ch-add-{{ section_id }}">
+          <i class="fa-solid fa-bag-shopping" style="margin-right:8px;"></i>Add to Collection
+        </button>
+
+      </div>
+    </aside>
+  </div>
+
+  <!-- Toast -->
+  <div class="ch-toast" id="ch-toast-{{ section_id }}"></div>
+
+</section>
+
+<!-- Three.js Import Map (only once per page; guard with a flag) -->
+<script>
+  if (!window.__chronosImportMapLoaded) {
+    window.__chronosImportMapLoaded = true;
+    const im = document.createElement('script');
+    im.type = 'importmap';
+    im.textContent = JSON.stringify({
+      imports: {
+        "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+        "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+      }
+    });
+    document.head.appendChild(im);
+  }
+</script>
+
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
+
+/* ===== DATA FROM LIQUID SCHEMA ===== */
+const SECTION_ID = {{ section_id | json }};
+const BASE_PRICE  = {{ base_price }};
+const BRAND_NAME  = {{ brand_name | json }};
+
+const dialColors = [
+  {%- for block in dial_blocks -%}
+  {
+    name: {{ block.settings.name | json }},
+    color: {{ block.settings.color | json }}
+  }{% unless forloop.last %},{% endunless %}
+  {%- endfor -%}
+];
+
+const caseMaterials = {
+  {%- for block in case_blocks -%}
+  {{ block.settings.id | json }}: {
+    name: {{ block.settings.name | json }},
+    hex: {{ block.settings.color | json }},
+    metal: {{ block.settings.metalness | default: 92 }} / 100,
+    rough: {{ block.settings.roughness | default: 14 }} / 100,
+    price: {{ block.settings.price | default: 0 }}
+  }{% unless forloop.last %},{% endunless %}
+  {%- endfor -%}
+};
+
+const strapOptions = [
+  {%- for block in strap_blocks -%}
+  {
+    id: {{ block.settings.id | json }},
+    name: {{ block.settings.name | json }},
+    type: {{ block.settings.strap_type | json }},
+    hex: {{ block.settings.color | json }},
+    price: {{ block.settings.price | default: 0 }}
+  }{% unless forloop.last %},{% endunless %}
+  {%- endfor -%}
+];
+
+/* ===== STATE ===== */
+const firstCaseKey  = Object.keys(caseMaterials)[0];
+const firstStrapId  = strapOptions[0]?.id;
+let state = { dialIdx: 0, caseKey: firstCaseKey, strapId: firstStrapId };
+
+/* ===== HELPERS ===== */
+const $ = id => document.getElementById(id);
+const sid = suffix => `ch-${suffix}-${SECTION_ID}`;
+
+function showToast(msg) {
+  const t = $(sid('toast'));
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2500);
+}
+function calcPrice() {
+  let p = BASE_PRICE;
+  if (caseMaterials[state.caseKey]) p += caseMaterials[state.caseKey].price;
+  const st = strapOptions.find(s => s.id === state.strapId);
+  if (st) p += st.price;
+  return p;
+}
+function updatePrice() {
+  $(sid('sum-price')).textContent = '$' + calcPrice().toLocaleString();
+}
+function highlightSwatch(group, val) {
+  document.querySelectorAll(`#chronos-${SECTION_ID} [data-group="${group}"]`)
+    .forEach(el => el.classList.toggle('active', parseInt(el.dataset.idx) === val));
+}
+function highlightCard(group, val) {
+  document.querySelectorAll(`#chronos-${SECTION_ID} [data-group="${group}"]`)
+    .forEach(el => el.classList.toggle('active', el.dataset.key === val));
+}
+
+/* ===== THREE.JS SCENE ===== */
+const canvas    = $(sid('canvas'));
+const container = $(sid('viewer'));
+const EPS = 0.001, CASE_R = 1.2, CASE_H = 0.45, DIAL_R = 1.08;
+
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true, powerPreference: 'high-performance' });
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.3;
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+
+const scene  = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(32, 1, 0.1, 100);
+camera.position.set(2.5, 3.5, 5);
+
+const controls = new OrbitControls(camera, canvas);
+controls.enableDamping = true;
+controls.dampingFactor = 0.06;
+controls.enablePan    = false;
+controls.minDistance  = 4;
+controls.maxDistance  = 12;
+controls.target.set(0, 0, 0);
+
+const pmremGen = new THREE.PMREMGenerator(renderer);
+scene.environment = pmremGen.fromScene(new RoomEnvironment(), 0.04).texture;
+pmremGen.dispose();
+
+scene.add(new THREE.AmbientLight(0xffffff, 0.35));
+const dirLight = new THREE.DirectionalLight(0xffffff, 1.8);
+dirLight.position.set(4, 8, 4);
+scene.add(dirLight);
+const fillLight = new THREE.PointLight(0xc9a96e, 0.5, 20);
+fillLight.position.set(-4, 3, -2);
+scene.add(fillLight);
+const rimLight = new THREE.PointLight(0xffffff, 0.3, 20);
+rimLight.position.set(0, -3, -6);
+scene.add(rimLight);
+
+const watchGroup = new THREE.Group();
+scene.add(watchGroup);
+
+let caseParts = [], dialFaceMesh, dialGroup, strapGroup, buckleMesh;
+let hourHand, minuteHand, secondHand;
+
+function makeDialTexture(bgColor) {
+  const c = document.createElement('canvas');
+  c.width = 512; c.height = 512;
+  const ctx = c.getContext('2d');
+  ctx.fillStyle = bgColor;
+  ctx.fillRect(0, 0, 512, 512);
+  ctx.globalAlpha = 0.04;
+  for (let a = 0; a < 360; a += 1.5) {
+    const rad = a * Math.PI / 180;
+    ctx.beginPath(); ctx.moveTo(256, 256);
+    ctx.lineTo(256 + Math.cos(rad) * 256, 256 + Math.sin(rad) * 256);
+    ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 1; ctx.stroke();
+  }
+  ctx.globalAlpha = 1;
+  ctx.fillStyle = 'rgba(200,195,185,0.7)';
+  ctx.font = '600 22px Cormorant Garamond, serif';
+  ctx.textAlign = 'center';
+  ctx.fillText(BRAND_NAME, 256, 195);
+  ctx.font = '300 9px Outfit, sans-serif';
+  ctx.fillStyle = 'rgba(200,195,185,0.4)';
+  ctx.fillText('A U T O M A T I C', 256, 212);
+  ctx.font = '300 7px Outfit, sans-serif';
+  ctx.fillStyle = 'rgba(200,195,185,0.3)';
+  ctx.fillText('S W I S S   M A D E', 256, 415);
+  return new THREE.CanvasTexture(c);
+}
+
+function buildWatch() {
+  while (watchGroup.children.length) watchGroup.remove(watchGroup.children[0]);
+  caseParts = [];
+
+  const cm     = caseMaterials[state.caseKey];
+  const caseMat = new THREE.MeshStandardMaterial({ color: cm.hex, metalness: cm.metal, roughness: cm.rough });
+
+  const body = new THREE.Mesh(new THREE.CylinderGeometry(CASE_R, CASE_R * 0.97, CASE_H, 64), caseMat);
+  watchGroup.add(body); caseParts.push(body);
+
+  const bezel = new THREE.Mesh(new THREE.TorusGeometry(CASE_R + 0.01, 0.065, 16, 64), caseMat.clone());
+  bezel.rotation.x = Math.PI / 2;
+  bezel.position.y = CASE_H / 2;
+  watchGroup.add(bezel); caseParts.push(bezel);
+
+  for (let i = 0; i < 120; i++) {
+    const angle = (i / 120) * Math.PI * 2;
+    const notch = new THREE.Mesh(new THREE.BoxGeometry(0.012, 0.025, 0.04), caseMat.clone());
+    notch.position.set(Math.sin(angle) * (CASE_R + 0.01), CASE_H / 2 + 0.04, Math.cos(angle) * (CASE_R + 0.01));
+    notch.rotation.y = -angle;
+    watchGroup.add(notch); caseParts.push(notch);
+  }
+
+  const backMat = new THREE.MeshStandardMaterial({ color: cm.hex, metalness: cm.metal * 0.8, roughness: cm.rough + 0.15 });
+  const back    = new THREE.Mesh(new THREE.CylinderGeometry(CASE_R * 0.95, CASE_R * 0.95, 0.05, 64), backMat);
+  back.position.y = -CASE_H / 2 - 0.025;
+  watchGroup.add(back); caseParts.push(back);
+
+  const crown = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.09, 0.3, 16), caseMat.clone());
+  crown.rotation.z = Math.PI / 2;
+  crown.position.set(CASE_R + 0.2, 0.05, 0);
+  watchGroup.add(crown); caseParts.push(crown);
+
+  for (let s = -1; s <= 1; s += 2) {
+    const guard = new THREE.Mesh(new THREE.BoxGeometry(0.15, 0.12, 0.08), caseMat.clone());
+    guard.position.set(CASE_R + 0.08, 0.05, s * 0.14);
+    watchGroup.add(guard); caseParts.push(guard);
+  }
+
+  [{ x: 0.52, z: 1.35 }, { x: -0.52, z: 1.35 }, { x: 0.52, z: -1.35 }, { x: -0.52, z: -1.35 }].forEach(lp => {
+    const lug = new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.18, 0.55), caseMat.clone());
+    lug.position.set(lp.x, -0.08, lp.z);
+    watchGroup.add(lug); caseParts.push(lug);
+  });
+
+  const crystalMat = new THREE.MeshPhysicalMaterial({ color: 0xffffff, transparent: true, opacity: 0.08, metalness: 0, roughness: 0 });
+  const crystal    = new THREE.Mesh(new THREE.CylinderGeometry(DIAL_R + 0.02, DIAL_R + 0.02, 0.06, 64), crystalMat);
+  crystal.position.y = CASE_H / 2 + 0.03;
+  watchGroup.add(crystal);
+
+  dialGroup = new THREE.Group();
+  dialGroup.position.y = CASE_H / 2 + 0.005;
+  watchGroup.add(dialGroup);
+
+  const dialTex = makeDialTexture(dialColors[state.dialIdx]?.color || '#0d1b3e');
+  const dialMat = new THREE.MeshStandardMaterial({ map: dialTex, metalness: 0.15, roughness: 0.55 });
+  dialFaceMesh  = new THREE.Mesh(new THREE.CylinderGeometry(DIAL_R, DIAL_R, 0.01, 64), dialMat);
+  dialGroup.add(dialFaceMesh);
+
+  const markerMat = new THREE.MeshStandardMaterial({ color: '#d4d0c8', metalness: 0.85, roughness: 0.15 });
+  for (let i = 0; i < 12; i++) {
+    const angle  = (i / 12) * Math.PI * 2;
+    const isMain = i % 3 === 0;
+    const marker = new THREE.Mesh(new THREE.BoxGeometry(isMain ? 0.05 : 0.03, 0.015, isMain ? 0.16 : 0.10), markerMat);
+    marker.position.set(Math.sin(angle) * 0.9, 0.008, Math.cos(angle) * 0.9);
+    marker.rotation.y = -angle;
+    dialGroup.add(marker);
+  }
+
+  const tickMat = new THREE.MeshStandardMaterial({ color: '#a0a0a0', metalness: 0.7, roughness: 0.25 });
+  for (let i = 0; i < 60; i++) {
+    if (i % 5 === 0) continue;
+    const angle = (i / 60) * Math.PI * 2;
+    const tick  = new THREE.Mesh(new THREE.BoxGeometry(0.012, 0.006, 0.05), tickMat);
+    tick.position.set(Math.sin(angle) * 0.96, 0.004, Math.cos(angle) * 0.96);
+    tick.rotation.y = -angle;
+    dialGroup.add(tick);
+  }
+
+  const dateRing = new THREE.Mesh(new THREE.BoxGeometry(0.21, 0.008, 0.15), new THREE.MeshStandardMaterial({ color: cm.hex, metalness: cm.metal, roughness: cm.rough }));
+  dateRing.position.set(0.58, 0.005, 0);
+  dialGroup.add(dateRing); caseParts.push(dateRing);
+  const dateFrame = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.01, 0.12), new THREE.MeshStandardMaterial({ color: '#ffffff', roughness: 0.4 }));
+  dateFrame.position.set(0.58, 0.006, 0);
+  dialGroup.add(dateFrame);
+
+  const handMat = new THREE.MeshStandardMaterial({ color: '#d0ccc0', metalness: 0.8, roughness: 0.15 });
+  const secMat  = new THREE.MeshStandardMaterial({ color: '#c9a96e', metalness: 0.7, roughness: 0.2, emissive: '#c9a96e', emissiveIntensity: 0.1 });
+
+  const hhGeo = new THREE.BoxGeometry(0.065, 0.012, 0.52); hhGeo.translate(0, 0, 0.24);
+  hourHand    = new THREE.Mesh(hhGeo, handMat); hourHand.position.y = 0.02; dialGroup.add(hourHand);
+
+  const mhGeo = new THREE.BoxGeometry(0.04, 0.01, 0.78); mhGeo.translate(0, 0, 0.36);
+  minuteHand  = new THREE.Mesh(mhGeo, handMat); minuteHand.position.y = 0.03; dialGroup.add(minuteHand);
+
+  const shGeo = new THREE.BoxGeometry(0.015, 0.006, 0.88); shGeo.translate(0, 0, 0.38);
+  secondHand  = new THREE.Mesh(shGeo, secMat); secondHand.position.y = 0.04; dialGroup.add(secondHand);
+  const cw    = new THREE.Mesh(new THREE.BoxGeometry(0.025, 0.006, 0.12).translate(0, 0, -0.06), secMat);
+  secondHand.add(cw);
+
+  const pin = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.03, 0.06, 16), handMat);
+  pin.position.y = 0.04; dialGroup.add(pin);
+
+  buildStrap();
+}
+
+function buildStrap() {
+  if (strapGroup) watchGroup.remove(strapGroup);
+  if (buckleMesh) { watchGroup.remove(buckleMesh); buckleMesh = null; }
+  strapGroup = new THREE.Group();
+
+  const st      = strapOptions.find(s => s.id === state.strapId) || strapOptions[0];
+  const isMetal = st?.type === 'metal';
+  const numSegs = isMetal ? 16 : 12;
+  const width   = isMetal ? 0.88 : 0.82;
+  const thick   = isMetal ? 0.06 : 0.045;
+  const gap     = isMetal ? 0.03 : 0.015;
+  const totalLen = 3.0;
+  const segLen  = (totalLen / numSegs) - gap;
+
+  const strapMat = new THREE.MeshStandardMaterial({
+    color: st?.hex || '#3a2010',
+    metalness: isMetal ? 0.9 : 0.02,
+    roughness: isMetal ? 0.12 : (st?.type === 'rubber' ? 0.85 : 0.6),
+  });
+
+  for (let half = -1; half <= 1; half += 2) {
+    for (let i = 0; i < numSegs; i++) {
+      const t   = i / numSegs;
+      const dist = 1.55 + i * (totalLen / numSegs);
+      const seg  = new THREE.Mesh(new THREE.BoxGeometry(width, thick, Math.max(EPS, segLen)), strapMat);
+      seg.position.set(0, -t * t * 2.6 - 0.06, half * dist);
+      seg.rotation.x = half * t * 0.55;
+      strapGroup.add(seg);
+    }
+  }
+  watchGroup.add(strapGroup);
+
+  const cm        = caseMaterials[state.caseKey];
+  const buckleMat = new THREE.MeshStandardMaterial({ color: cm.hex, metalness: cm.metal, roughness: cm.rough });
+  buckleMesh = new THREE.Mesh(new THREE.TorusGeometry(0.32, 0.025, 8, 4), buckleMat);
+  buckleMesh.rotation.y = Math.PI / 2;
+  buckleMesh.rotation.z = Math.PI / 2;
+  buckleMesh.position.set(0, -2.55, -3.1);
+  buckleMesh.scale.set(1, 1.3, 1);
+  watchGroup.add(buckleMesh);
+  caseParts.push(buckleMesh);
+}
+
+/* ===== UPDATE FUNCTIONS ===== */
+function updateDial(idx) {
+  state.dialIdx = idx;
+  const tex = makeDialTexture(dialColors[idx]?.color || '#0d1b3e');
+  dialFaceMesh.material.map.dispose();
+  dialFaceMesh.material.map = tex;
+  dialFaceMesh.material.needsUpdate = true;
+  $(sid('dial-label')).textContent = dialColors[idx]?.name || '';
+  $(sid('sum-dial')).textContent   = dialColors[idx]?.name || '';
+  highlightSwatch('dial', idx);
+}
+
+function updateCaseMat(key) {
+  state.caseKey = key;
+  const cm = caseMaterials[key];
+  caseParts.forEach(mesh => {
+    if (mesh.material) {
+      mesh.material.color.set(cm.hex);
+      mesh.material.metalness = cm.metal;
+      mesh.material.roughness = cm.rough;
+      mesh.material.needsUpdate = true;
+    }
+  });
+  buildStrap();
+  $(sid('sum-case')).textContent = cm.name;
+  highlightCard('case', key);
+}
+
+function updateStrap(id) {
+  state.strapId = id;
+  buildStrap();
+  const st = strapOptions.find(s => s.id === id);
+  $(sid('sum-strap')).textContent = st?.name || '';
+  highlightCard('strap', id);
+}
+
+/* ===== EVENT LISTENERS ===== */
+document.querySelectorAll(`#chronos-${SECTION_ID} [data-group="dial"]`).forEach(el => {
+  el.addEventListener('click', () => { updateDial(parseInt(el.dataset.idx)); updatePrice(); });
+});
+document.querySelectorAll(`#chronos-${SECTION_ID} [data-group="case"]`).forEach(el => {
+  el.addEventListener('click', () => { updateCaseMat(el.dataset.key); updatePrice(); });
+});
+document.querySelectorAll(`#chronos-${SECTION_ID} [data-group="strap"]`).forEach(el => {
+  el.addEventListener('click', () => { updateStrap(el.dataset.key); updatePrice(); });
+});
+
+$(sid('reset')).addEventListener('click', () => {
+  state = { dialIdx: 0, caseKey: firstCaseKey, strapId: firstStrapId };
+  buildWatch();
+  updateDial(0);
+  updateCaseMat(firstCaseKey);
+  updateStrap(firstStrapId);
+  updatePrice();
+  showToast('Configuration reset to defaults');
+});
+
+$(sid('save')).addEventListener('click', () => {
+  const cfg = {
+    dial:  dialColors[state.dialIdx]?.name,
+    case:  caseMaterials[state.caseKey]?.name,
+    strap: strapOptions.find(s => s.id === state.strapId)?.name,
+  };
+  showToast(`Saved: ${cfg.dial} / ${cfg.case} / ${cfg.strap}`);
+});
+
+$(sid('add')).addEventListener('click', () => {
+  showToast(`Added to collection — $${calcPrice().toLocaleString()}`);
+});
+
+/* ===== ANIMATION LOOP ===== */
+let autoRotate = true, idleTimer = null;
+controls.addEventListener('start', () => { autoRotate = false; clearTimeout(idleTimer); });
+controls.addEventListener('end',   () => {
+  clearTimeout(idleTimer);
+  idleTimer = setTimeout(() => { autoRotate = true; }, 4000);
+});
+
+function updateTimeHands() {
+  const now = new Date();
+  const h = now.getHours() % 12, m = now.getMinutes();
+  const s = now.getSeconds() + now.getMilliseconds() / 1000;
+  if (hourHand)   hourHand.rotation.y   = -((h + m / 60) / 12) * Math.PI * 2;
+  if (minuteHand) minuteHand.rotation.y = -((m + s / 60) / 60) * Math.PI * 2;
+  if (secondHand) secondHand.rotation.y = -(s / 60) * Math.PI * 2;
+  const pad = n => String(Math.floor(n)).padStart(2, '0');
+  const timeBadge = $(sid('time'));
+  if (timeBadge) timeBadge.textContent = `${pad(now.getHours())}:${pad(m)}:${pad(s)}`;
+}
+
+function resize() {
+  const w = container.clientWidth, h = container.clientHeight;
+  camera.aspect = w / h;
+  camera.updateProjectionMatrix();
+  renderer.setSize(w, h);
+}
+window.addEventListener('resize', resize);
+resize();
+
+buildWatch();
+
+const clock = new THREE.Clock();
+(function animate() {
+  requestAnimationFrame(animate);
+  const t = clock.getElapsedTime();
+  if (autoRotate) watchGroup.rotation.y += 0.003;
+  watchGroup.position.y = Math.sin(t * 0.8) * 0.06;
+  updateTimeHands();
+  controls.update();
+  renderer.render(scene, camera);
+})();
+</script>
+
+{% schema %}
+{
+  "name": "Watch Customizer",
+  "tag": "section",
+  "class": "chronos-section",
+  "settings": [
+    {
+      "type": "text",
+      "id": "brand_name",
+      "label": "Brand Name",
+      "default": "CHRONOS"
+    },
+    {
+      "type": "text",
+      "id": "heading",
+      "label": "Panel Heading",
+      "default": "Design Your Timepiece"
+    },
+    {
+      "type": "text",
+      "id": "subheading",
+      "label": "Panel Subheading",
+      "default": "Configure every detail to your preference!"
+    },
+    {
+      "type": "number",
+      "id": "base_price",
+      "label": "Base Price (USD)",
+      "default": 12500
+    },
+    {
+      "type": "header",
+      "content": "Colors"
+    },
+    {
+      "type": "color",
+      "id": "color_bg",
+      "label": "Background",
+      "default": "#060606"
+    },
+    {
+      "type": "color",
+      "id": "color_fg",
+      "label": "Foreground (text)",
+      "default": "#ece8e0"
+    },
+    {
+      "type": "color",
+      "id": "color_muted",
+      "label": "Muted text",
+      "default": "#706b63"
+    },
+    {
+      "type": "color",
+      "id": "color_accent",
+      "label": "Accent (gold)",
+      "default": "#c9a96e"
+    },
+    {
+      "type": "color",
+      "id": "color_card",
+      "label": "Panel background",
+      "default": "#0e0e0d"
+    },
+    {
+      "type": "color",
+      "id": "color_border",
+      "label": "Border",
+      "default": "#242220"
+    },
+    {
+      "type": "color",
+      "id": "color_surface",
+      "label": "Surface / input bg",
+      "default": "#151413"
+    }
+  ],
+  "blocks": [
+    {
+      "type": "dial_color",
+      "name": "Dial Color",
+      "settings": [
+        {
+          "type": "text",
+          "id": "name",
+          "label": "Name",
+          "default": "Midnight Blue"
+        },
+        {
+          "type": "color",
+          "id": "color",
+          "label": "Color",
+          "default": "#0d1b3e"
+        }
+      ]
+    },
+    {
+      "type": "case_material",
+      "name": "Case Material",
+      "settings": [
+        {
+          "type": "text",
+          "id": "id",
+          "label": "Internal ID (unique, no spaces)",
+          "default": "steel"
+        },
+        {
+          "type": "text",
+          "id": "name",
+          "label": "Display Name",
+          "default": "Stainless Steel"
+        },
+        {
+          "type": "color",
+          "id": "color",
+          "label": "Material Color",
+          "default": "#b8b8b8"
+        },
+        {
+          "type": "range",
+          "id": "metalness",
+          "label": "Metalness (0 = matte, 100 = mirror)",
+          "min": 0,
+          "max": 100,
+          "step": 1,
+          "default": 92
+        },
+        {
+          "type": "range",
+          "id": "roughness",
+          "label": "Roughness (0 = polished, 100 = raw)",
+          "min": 0,
+          "max": 100,
+          "step": 1,
+          "default": 14
+        },
+        {
+          "type": "number",
+          "id": "price",
+          "label": "Price Add-on (USD)",
+          "default": 0
+        }
+      ]
+    },
+    {
+      "type": "strap",
+      "name": "Strap Option",
+      "settings": [
+        {
+          "type": "text",
+          "id": "id",
+          "label": "Internal ID (unique, no spaces)",
+          "default": "calfskin-brown"
+        },
+        {
+          "type": "text",
+          "id": "name",
+          "label": "Display Name",
+          "default": "Calfskin Brown"
+        },
+        {
+          "type": "select",
+          "id": "strap_type",
+          "label": "Material Type",
+          "options": [
+            { "value": "leather", "label": "Leather" },
+            { "value": "metal",   "label": "Metal Bracelet" },
+            { "value": "rubber",  "label": "Rubber" }
+          ],
+          "default": "leather"
+        },
+        {
+          "type": "color",
+          "id": "color",
+          "label": "Strap Color",
+          "default": "#3a2010"
+        },
+        {
+          "type": "number",
+          "id": "price",
+          "label": "Price Add-on (USD)",
+          "default": 0
+        }
+      ]
+    }
+  ],
+  "presets": [
+    {
+      "name": "Watch Customizer",
+      "blocks": [
+        { "type": "dial_color",    "settings": { "name": "Midnight Blue",   "color": "#0d1b3e" } },
+        { "type": "dial_color",    "settings": { "name": "Onyx Black",       "color": "#0a0a0a" } },
+        { "type": "dial_color",    "settings": { "name": "Silver Flinqué",   "color": "#c8c4be" } },
+        { "type": "dial_color",    "settings": { "name": "Champagne",        "color": "#d9c9a0" } },
+        { "type": "dial_color",    "settings": { "name": "Racing Green",     "color": "#0a3020" } },
+        { "type": "dial_color",    "settings": { "name": "Arctic White",     "color": "#ede9e2" } },
+        { "type": "dial_color",    "settings": { "name": "Burgundy",         "color": "#3a0a18" } },
+        { "type": "dial_color",    "settings": { "name": "Slate Gray",       "color": "#4a4a50" } },
+        { "type": "case_material", "settings": { "id": "steel",    "name": "Stainless Steel",  "color": "#b8b8b8", "metalness": 92, "roughness": 14, "price": 0    } },
+        { "type": "case_material", "settings": { "id": "gold",     "name": "18K Yellow Gold",  "color": "#cfaa3e", "metalness": 96, "roughness": 10, "price": 8500 } },
+        { "type": "case_material", "settings": { "id": "rosegold", "name": "Rose Gold",        "color": "#b26e6e", "metalness": 93, "roughness": 12, "price": 5200 } },
+        { "type": "case_material", "settings": { "id": "titanium", "name": "Grade 5 Titanium", "color": "#8a8a88", "metalness": 82, "roughness": 28, "price": 1800 } },
+        { "type": "case_material", "settings": { "id": "ceramic",  "name": "Black Ceramic",    "color": "#181818", "metalness": 25, "roughness": 18, "price": 3200 } },
+        { "type": "strap", "settings": { "id": "calfskin-brown",  "name": "Calfskin Brown",  "strap_type": "leather", "color": "#3a2010", "price": 0    } },
+        { "type": "strap", "settings": { "id": "calfskin-black",  "name": "Calfskin Black",  "strap_type": "leather", "color": "#1a1410", "price": 0    } },
+        { "type": "strap", "settings": { "id": "calfskin-navy",   "name": "Calfskin Navy",   "strap_type": "leather", "color": "#0c1525", "price": 0    } },
+        { "type": "strap", "settings": { "id": "alligator-black", "name": "Alligator Black", "strap_type": "leather", "color": "#0e0908", "price": 1200 } },
+        { "type": "strap", "settings": { "id": "alligator-brown", "name": "Alligator Brown", "strap_type": "leather", "color": "#2a1508", "price": 1200 } },
+        { "type": "strap", "settings": { "id": "bracelet-steel",  "name": "Steel Bracelet",  "strap_type": "metal",   "color": "#b8b8b8", "price": 800  } },
+        { "type": "strap", "settings": { "id": "bracelet-gold",   "name": "Gold Bracelet",   "strap_type": "metal",   "color": "#cfaa3e", "price": 6200 } },
+        { "type": "strap", "settings": { "id": "rubber-black",    "name": "Rubber Strap",    "strap_type": "rubber",  "color": "#0c0c0c", "price": 200  } }
+      ]
+    }
+  ]
+}
+{% endschema %}
