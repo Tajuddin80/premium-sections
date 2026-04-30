@@ -1,42 +1,92 @@
-{% comment %}
-  Welcome to Shopify theme development!
+{% comment %} 
+    Welcome to Shopify theme development! 
 {% endcomment %}
-
 <div class="welcome full-width">
+
   <div class="welcome-content">
     <div>
-      <h1>Hello, World!</h1>
+      <h2 class="hello">Hello, World!</h2>
 
-      <p class="welcome-description">
-        The Skeleton theme is a minimal, carefully structured Shopify theme designed to help you quickly get started.
-        Designed with modularity, maintainability, and Shopify's best practices in mind.
-      </p>
+      <div id="three-container"></div>
 
-      <p class="welcome-description">
-        Themes shape the online store experience for merchants and their customers. Build fast, flexible themes at scale
-        using Liquid, Shopify's theme templating language, along with HTML, CSS, JavaScript, and JSON.
-      </p>
+<button class="my-id">button</button>
+      <style>
+        ul.example {
+          list-style: none;
+          display: flex;
+          justify-content: center;
+          gap: 20px;
+          flex: 0;
+          margin: 0;
+          padding: 0;
+        }
+
+        ul.example li {
+          width: 50px;
+          height: 50px;
+          border-radius: 10px;
+          display: block;
+          background-color: #0cdcf7;
+          opacity: 0;
+          flex: 0 0 50px;
+        }
+
+        #three-container {
+          width: 300px;
+          height: 200px;
+          background-repeat: no-repeat;
+          background-image: url(data:image/jpeg;base64,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);
+        }
+        .char {
+          display: inline-block;
+        }
+      </style>
+
+      <h1>hello man</h1>
+
+
+      <ul class="example">
+        <li></li>
+        <li></li>
+        <li></li>
+        <li></li>
+        <li></li>
+        <li></li>
+        <li></li>
+        <li></li>
+        <li></li>
+        <li></li>
+      </ul>
+
+
     </div>
     <div class="icon">
-      <img src="{{ 'shoppy-x-ray.svg' | asset_url }}" width="300" height="300">
+      <img
+        src="{{ 'shoppy-x-ray.svg' | asset_url }}"
+        width="300"
+        height="300">
     </div>
   </div>
 </div>
 
 <div class="highlights">
   <div class="highlight">
-    <h3>Key Concepts</h3>
+    <h3 class="hello">Key Concepts</h3>
     <p class="highlight-description">
       Shopify themes are a package of template files, building blocks, and supporting assets. Use these building blocks
+ 
+ 
       to create modular, customizable themes.
     </p>
     <p>{{ 'Learn more about key concepts' | link_to: 'https://shopify.dev/docs/storefronts/themes/architecture' }}</p>
   </div>
 
   <div class="highlight">
-    <h3>Liquid</h3>
+    <div class="liquid">Liquid</div>
     <p class="highlight-description">
       The Liquid templating language is the backbone of Shopify themes, and is used to load dynamic content on
+ 
+ 
       storefronts. Extend Liquid objects to store and present custom data using metafields.
     </p>
     <p>{{ 'View the Liquid reference' | link_to: 'https://shopify.dev/docs/api/liquid' }}</p>
@@ -46,6 +96,8 @@
     <h3>Best Practices</h3>
     <p class="highlight-description">
       To optimize your theme development experience, Shopify has established a set of best practices that you can refer
+ 
+ 
       to when developing your theme and setting up your toolchains and processes.
     </p>
     <p>{{ 'Follow best practices' | link_to: 'https://shopify.dev/docs/storefronts/themes/best-practices' }}</p>
@@ -121,7 +173,8 @@
     display: flex;
     width: fit-content;
     background-color: rgb(250, 251, 251);
-    box-shadow: rgba(0, 0, 0, 0.2) 0px -3px 0px 0px inset, rgba(255, 255, 255, 0.9) 0px 2px 0px 0px inset;
+    box-shadow: rgba(0, 0, 0, 0.2) 0 -3px 0 0 inset
+    , rgba(255, 255, 255, 0.9) 0 2px 0 0 inset;
     border: 1px solid rgb(140, 145, 150);
     border-radius: 4px;
     color: rgb(92, 95, 98);
@@ -131,14 +184,14 @@
 {% endstylesheet %}
 
 {% schema %}
-{
-  "name": "Hello World",
-  "settings": [],
-  "presets": [
-    {
-      "name": "Hello World Template",
-      "category": "Demo"
-    }
-  ]
-}
+  {
+    "name": "Hello World",
+    "settings": [],
+    "presets": [
+      {
+        "name": "Hello World Template",
+        "category": "Demo"
+      }
+    ]
+  }
 {% endschema %}

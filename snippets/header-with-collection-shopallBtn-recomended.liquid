@@ -1,0 +1,785 @@
+{% comment %} header.liquid schema should be added
+
+{
+  "type": "drawer_collection",
+  "name": "Mobile Collection Showcase",
+  "limit": 1,
+  "settings": [
+    {
+      "type": "paragraph",
+      "content": "Appears at the top of the mobile menu drawer: product list → Shop All → discounted offer slider."
+    },
+    {
+      "type": "header",
+      "content": "Collection"
+    },
+    {
+      "type": "collection",
+      "id": "collection",
+      "label": "Collection to showcase"
+    },
+    {
+      "type": "range",
+      "id": "product_limit",
+      "label": "Products to show",
+      "min": 3,
+      "max": 7,
+      "step": 1,
+      "default": 6
+    },
+    {
+      "type": "text",
+      "id": "product_subtitle",
+      "label": "Product subtitle",
+      "placeholder": "e.g. Bundle + Save!",
+      "info": "Shown below every product title in the list. Leave blank to hide."
+    },
+    {
+      "type": "header",
+      "content": "Shop All button"
+    },
+    {
+      "type": "text",
+      "id": "shop_all_text",
+      "label": "Button label",
+      "default": "SHOP ALL"
+    },
+    {
+      "type": "header",
+      "content": "Offer / Bundle section"
+    },
+    {
+      "type": "checkbox",
+      "id": "show_offer_section",
+      "label": "Show offer section",
+      "default": true,
+      "info": "Displays products from the collection that have a compare-at price (i.e. are on sale), with an auto-rotating swatcher."
+    },
+    {
+      "type": "text",
+      "id": "offer_subtitle",
+      "label": "Offer subtitle",
+      "placeholder": "e.g. Bundle + Save!",
+      "info": "Shown below the offer product title. Leave blank to show the price instead."
+    }
+  ]
+}
+ {% endcomment %}
+
+
+
+{% liquid
+  assign main_menu = section.settings.main_menu
+  assign mobile_menu = section.settings.mobile_menu
+
+  if mobile_menu == blank
+    assign menu = main_menu
+  else
+    assign menu = mobile_menu
+  endif
+%}
+
+<style>
+        /* ── Mobile Collection Showcase ── */
+        .m-drawer-showcase {
+          border-bottom: 1px solid var(--color-border, #e8e8e1);
+        }
+
+        /* Product card list */
+        .m-drawer-showcase__products {
+          display: flex;
+          flex-direction: column;
+        }
+        .m-drawer-showcase__product-card {
+          display: flex;
+          align-items: center;
+          gap: 14px;
+          padding: 12px 20px;
+          text-decoration: none;
+          color: inherit;
+          border-bottom: 1px solid var(--color-border, #e8e8e1);
+          transition: background 0.15s ease;
+        }
+        .m-drawer-showcase__product-card:last-child {
+          border-bottom: none;
+        }
+        .m-drawer-showcase__product-card:hover {
+          background: rgba(0, 0, 0, 0.03);
+        }
+        .m-drawer-showcase__product-image {
+          width: 72px;
+          height: 72px;
+          flex-shrink: 0;
+          border-radius: 4px;
+          overflow: hidden;
+          background: #f5f5f0;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+        }
+        .m-drawer-showcase__product-image img,
+        .m-drawer-showcase__product-image svg {
+          width: 100%;
+          height: 100%;
+          object-fit: cover;
+          display: block;
+        }
+        .m-drawer-showcase__product-info {
+          flex: 1;
+          min-width: 0;
+        }
+
+       .m-drawer-showcase__product-title {
+          font-size: 12px;
+          /* font-weight: 700; */
+          text-transform: uppercase;
+          letter-spacing: 0.06em;
+          margin: 0 0 3px;
+          line-height: 1.3;
+          color: var(--color-foreground, #1a1a1a);
+          white-space: pre-wrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+      }
+        .m-drawer-showcase__product-subtitle {
+          font-size: 12px;
+          color: var(--color-foreground-secondary, #6b6b6b);
+          margin: 0;
+        }
+
+        /* Shop All button */
+        .m-drawer-showcase__shop-all-wrapper {
+          padding: 14px 20px;
+          text-align: center;
+          border-top: 1px solid var(--color-border, #e8e8e1);
+          border-bottom: 1px solid var(--color-border, #e8e8e1);
+        }
+        .m-drawer-showcase__shop-all {
+          display: inline-block;
+          font-size: 12px;
+          font-weight: 700;
+          text-transform: uppercase;
+          letter-spacing: 0.1em;
+          text-decoration: underline;
+          text-underline-offset: 4px;
+          color: var(--color-foreground, #1a1a1a);
+          transition: opacity 0.15s;
+        }
+        .m-drawer-showcase__shop-all:hover {
+          opacity: 0.65;
+        }
+
+        /* Offer / Bundle slider */
+        .m-drawer-showcase__offers {
+          position: relative;
+        }
+        .m-drawer-showcase__offer-card {
+          display: none;
+           padding: 8px 10px 8px;
+    position: relative;
+        }
+        .m-drawer-showcase__offer-card.is-active {
+          display: block;
+        }
+        .m-drawer-showcase__offer-badge {
+          display: inline-flex;
+          align-items: center;
+          background: #e91e8c;
+          color: #fff;
+          font-size: 10px;
+          font-weight: 700;
+          padding: 3px 10px;
+          border-radius: 20px;
+          margin-bottom: 10px;
+          letter-spacing: 0.05em;
+          text-transform: uppercase;
+        }
+   .m-drawer-showcase__offer-inner {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      background: #eadcd661;
+      border-radius: 6px;
+      text-decoration: none;
+      color: inherit;
+  }
+        .m-drawer-showcase__offer-image {
+          width: 84px;
+          height: 84px;
+          flex-shrink: 0;
+          border-radius: 6px;
+          overflow: hidden;
+          background: var(--color-background, #fff);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+        }
+        .m-drawer-showcase__offer-image img,
+        .m-drawer-showcase__offer-image svg {
+          width: 100%;
+          height: 100%;
+          object-fit: cover;
+          display: block;
+        }
+        .m-drawer-showcase__offer-info {
+          flex: 1;
+          min-width: 0;
+        }
+        .m-drawer-showcase__offer-title {
+          font-size: 14px;
+          font-weight: 700;
+          margin: 0 0 5px;
+          color: var(--color-foreground, #1a1a1a);
+          line-height: 1.3;
+        }
+        .m-drawer-showcase__offer-subtitle {
+          font-size: 12px;
+          color: var(--color-foreground-secondary, #6b6b6b);
+          margin: 0;
+        }
+        .m-drawer-showcase__offer-subtitle .m-price {
+          font-size: 12px;
+        }
+
+        /* Swatcher dots */
+        .m-drawer-showcase__offer-dots {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 7px;
+          padding: 10px 20px 14px;
+        }
+
+        .m-drawer-showcase__offer-dots:empty { display: none }
+
+        .m-drawer-showcase__offer-dot {
+          width: 8px;
+          height: 8px;
+          border-radius: 50%;
+          border: 1.5px solid var(--color-foreground, #1a1a1a);
+          background: transparent;
+          cursor: pointer;
+          padding: 0;
+          transition: background 0.2s, transform 0.2s;
+          flex-shrink: 0;
+        }
+        .m-drawer-showcase__offer-dot.is-active {
+          background: var(--color-foreground, #1a1a1a);
+          transform: scale(1.25);
+        }
+
+        /* Prev / Next swatcher buttons */
+      .m-drawer-showcase__offer-nav {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        margin-left: auto;
+        flex-shrink: 0;
+      }
+      .m-drawer-showcase__offer-nav-btn {
+        width: 28px;
+        height: 28px;
+        border: 1.5px solid var(--color-foreground, #1a1a1a);
+        background: transparent;
+        border-radius: 3px;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 0;
+        transition: background 0.15s, color 0.15s;
+        color: var(--color-foreground, #1a1a1a);
+        flex-shrink: 0;
+      }
+      .m-drawer-showcase__offer-nav-btn:hover {
+        background: var(--color-foreground, #1a1a1a);
+        color: #fff;
+      }
+      .m-drawer-showcase__offer-nav-btn svg {
+        width: 10px;
+        height: 10px;
+        fill: currentColor;
+      }
+
+    /* Nav buttons row — floats to top-right of offer section */
+    .m-drawer-showcase__offer-nav {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 6px;
+      padding: 10px 20px 0;
+    }
+</style>
+
+<div id="m-menu-drawer" class="m-menu-drawer">
+  <div class="m-menu-drawer__backdrop"></div>
+  <div class="m-menu-drawer__wrapper">
+    <div class="m-menu-drawer__content">
+      {%- comment -%}
+        ──────────────────────────────────────────────
+        MOBILE COLLECTION SHOWCASE
+        Renders at the top of the drawer when the
+        'mobile_collection_showcase' block is added.
+        ──────────────────────────────────────────────
+      {%- endcomment -%}
+      {% for block in section.blocks %}
+        {% if block.type == 'mobile_collection' %}
+          {% assign showcase_collection = collections[block.settings.collection] %}
+          {% if showcase_collection != blank %}
+            <div class="m-drawer-showcase" {{ block.shopify_attributes }}>
+              {%- comment -%} 1 · Product card list {%- endcomment -%}
+              <div class="m-drawer-showcase__products">
+                {% assign product_limit = block.settings.product_limit | default: 6 %}
+                {% for product in showcase_collection.products limit: product_limit %}
+                  <a href="{{ product.url }}" class="m-drawer-showcase__product-card">
+                    <div class="m-drawer-showcase__product-image">
+                      {% if product.featured_image != blank %}
+                        {{
+                          product.featured_image
+                          | image_url: width: 144
+                          | image_tag: loading: 'lazy', alt: product.featured_image.alt
+                          | default: product.title, width: 72, height: 72
+                        }}
+                      {% else %}
+                        {{ 'product-1' | placeholder_svg_tag: 'm-placeholder-svg' }}
+                      {% endif %}
+                    </div>
+                    <div class="m-drawer-showcase__product-info">
+                      <h4 class="m-drawer-showcase__product-title">{{ product.title }}</h4>
+                      {% if block.settings.product_subtitle != blank %}
+                        <p class="m-drawer-showcase__product-subtitle">{{ block.settings.product_subtitle }}</p>
+                      {% endif %}
+                    </div>
+                  </a>
+                {% endfor %}
+              </div>
+
+              {%- comment -%} 2 · Shop All CTA {%- endcomment -%}
+              <div class="m-drawer-showcase__shop-all-wrapper">
+                <a href="{{ showcase_collection.url }}" class="m-drawer-showcase__shop-all">
+                  {{ block.settings.shop_all_text | default: 'SHOP ALL' }}
+                </a>
+              </div>
+
+              {%- comment -%} 3 · Offer / Bundle slider (discounted products) {%- endcomment -%}
+              {% if block.settings.show_offer_section %}
+                {% assign rendered_offers = 0 %}
+                {%- comment -%} Nav buttons — outside cards so they never hide {%- endcomment -%}
+                <div class="m-drawer-showcase__offer-nav" id="drawer-offer-nav-{{ block.id }}" style="display:none">
+                  <button
+                    class="m-drawer-showcase__offer-nav-btn"
+                    id="drawer-offer-prev-{{ block.id }}"
+                    aria-label="Previous offer"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 512">
+                      <path d="M238.475 475.535l7.071-7.07c4.686-4.686 4.686-12.284 0-16.971L50.054 256 245.546 60.506c4.686-4.686 4.686-12.284 0-16.971l-7.071-7.07c-4.686-4.686-12.284-4.686-16.97 0L10.454 247.515c-4.686 4.686-4.686 12.284 0 16.971L221.505 475.535c4.686 4.687 12.284 4.687 16.97 0z"/>
+                    </svg>
+                  </button>
+                  <button
+                    class="m-drawer-showcase__offer-nav-btn"
+                    id="drawer-offer-next-{{ block.id }}"
+                    aria-label="Next offer"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 512">
+                      <path d="M17.525 36.465l-7.071 7.07c-4.686 4.686-4.686 12.284 0 16.971L205.947 256 10.454 451.494c-4.686 4.686-4.686 12.284 0 16.971l7.071 7.07c4.686 4.686 12.284 4.686 16.97 0l211.051-211.05c4.686-4.686 4.686-12.284 0-16.971L34.495 36.465c-4.686-4.687-12.284-4.687-16.97 0z"/>
+                    </svg>
+                  </button>
+                </div>
+
+                <div class="m-drawer-showcase__offers" id="drawer-offers-{{ block.id }}">
+                  {% for product in showcase_collection.products limit: 20 %}
+                    {% if product.compare_at_price > product.price and rendered_offers < 6 %}
+                      {%- assign discount_amount = product.compare_at_price | minus: product.price -%}
+                      {%- assign discount_pct = discount_amount
+                        | times: 100
+                        | divided_by: product.compare_at_price
+                        | round
+                      -%}
+                      <div
+                        class="m-drawer-showcase__offer-card{% if rendered_offers == 0 %} is-active{% endif %}"
+                        data-offer-index="{{ rendered_offers }}"
+                      >
+                        <div class="m-drawer-showcase__offer-badge">SAVE {{ discount_pct }}%</div>
+                        <a href="{{ product.url }}" class="m-drawer-showcase__offer-inner">
+                          <div class="m-drawer-showcase__offer-image">
+                            {% if product.featured_image != blank %}
+                              {{
+                                product.featured_image
+                                | image_url: width: 168
+                                | image_tag: loading: 'lazy', alt: product.featured_image.alt
+                                | default: product.title, width: 84, height: 84
+                              }}
+                            {% else %}
+                              {{ 'product-1' | placeholder_svg_tag: 'm-placeholder-svg' }}
+                            {% endif %}
+                          </div>
+                          <div class="m-drawer-showcase__offer-info">
+                            <h4 class="m-drawer-showcase__offer-title">{{ product.title }}</h4>
+                            <p class="m-drawer-showcase__offer-subtitle">
+                              {% if block.settings.offer_subtitle != blank %}
+                                {{ block.settings.offer_subtitle }}
+                              {% else %}
+                                {% render 'product-prices', product: product, is_product_card: true %}
+                              {% endif %}
+                            </p>
+                          </div>
+                        </a>
+                      </div>
+                      {% assign rendered_offers = rendered_offers | plus: 1 %}
+                    {% endif %}
+                  {% endfor %}
+                </div>
+
+                {%- comment -%} Dots injected by JS so count is always accurate {%- endcomment -%}
+                <div class="m-drawer-showcase__offer-dots" id="drawer-offer-dots-{{ block.id }}"></div>
+
+                <script>
+                  (function () {
+                    var offersEl = document.getElementById('drawer-offers-{{ block.id }}');
+                    var dotsEl = document.getElementById('drawer-offer-dots-{{ block.id }}');
+                    var navEl = document.getElementById('drawer-offer-nav-{{ block.id }}');
+                    var prevBtn = document.getElementById('drawer-offer-prev-{{ block.id }}');
+                    var nextBtn = document.getElementById('drawer-offer-next-{{ block.id }}');
+                    if (!offersEl) return;
+
+                    var cards = offersEl.querySelectorAll('.m-drawer-showcase__offer-card');
+                    var current = 0;
+
+                    // Show nav only when more than 1 offer
+                    if (cards.length <= 1) {
+                      if (navEl) navEl.style.display = 'none';
+                      if (dotsEl) dotsEl.style.display = 'none';
+                      return;
+                    }
+
+                    if (navEl) navEl.style.display = 'flex';
+
+                    // Build dots
+                    if (dotsEl) {
+                      cards.forEach(function (_, i) {
+                        var dot = document.createElement('button');
+                        dot.className = 'm-drawer-showcase__offer-dot' + (i === 0 ? ' is-active' : '');
+                        dot.setAttribute('aria-label', 'Offer ' + (i + 1));
+                        dot.dataset.index = i;
+                        dotsEl.appendChild(dot);
+                      });
+                    }
+
+                    function goTo(idx) {
+                      current = (idx + cards.length) % cards.length;
+                      cards.forEach(function (card, i) {
+                        card.classList.toggle('is-active', i === current);
+                      });
+                      if (dotsEl) {
+                        dotsEl.querySelectorAll('.m-drawer-showcase__offer-dot').forEach(function (dot, i) {
+                          dot.classList.toggle('is-active', i === current);
+                        });
+                      }
+                    }
+
+                    if (dotsEl) {
+                      dotsEl.addEventListener('click', function (e) {
+                        var dot = e.target.closest('.m-drawer-showcase__offer-dot');
+                        if (dot) goTo(parseInt(dot.dataset.index, 10));
+                      });
+                    }
+
+                    if (prevBtn)
+                      prevBtn.addEventListener('click', function () {
+                        goTo(current - 1);
+                      });
+                    if (nextBtn)
+                      nextBtn.addEventListener('click', function () {
+                        goTo(current + 1);
+                      });
+                  })();
+                </script>
+              {% endif %}
+            </div>
+          {% endif %}
+        {% endif %}
+      {% endfor %}
+
+      {%- comment -%}
+        ──────────────────────────────────────────────
+        EXISTING NAVIGATION (unchanged)
+        ──────────────────────────────────────────────
+      {%- endcomment -%}
+      <ul class="m-menu-drawer__navigation m-menu-mobile">
+        {% for link in linklists[menu].links %}
+          {% liquid
+            assign title_handle = link.title | handleize
+            assign has_mega_item = false
+          %}
+          {% for block in section.blocks %}
+            {% liquid
+              assign menu_title = block.settings.heading | handleize
+
+              if menu_title == blank or menu_title != title_handle
+                continue
+              endif
+            %}
+            {% if menu_title == title_handle %}
+              {% liquid
+                assign has_mega_item = true
+              %}
+              {% case block.type %}
+                {% when 'banner' %}
+                  {% capture block_type %}
+                    {% if block.settings.banner_image != blank %}
+                      {% liquid
+                        assign banner_class = 'm-mega-banner' | append: ' m-mega-banner--' | append: block.settings.banner_style
+
+                        assign banner_link = block.settings.banner_link
+                        assign banner_title = block.settings.banner_title
+                        assign banner_desc = block.settings.banner_desc
+                        assign banner_button_text = block.settings.banner_button_text
+
+                        if banner_title == blank and banner_desc == blank and banner_button_text == blank
+                          assign banner_class = banner_class | append: ' m-mega-banner--no-content'
+                        endif
+
+                      %}
+                      <div class="{{ banner_class }}">
+                        {% if banner_link != blank %}
+                          <a href="{{ banner_link }}" class="m-hidden-link"><span class="m:visually-hidden">{{ banner_title | default: shop.name }}</span></a>
+                        {% endif %}
+                        <div class="m-mega-banner__image">
+                          {% render 'responsive-image', image: block.settings.banner_image, sizes: '500px' %}
+                        </div>
+                        <div class="m-mega-banner__inner">
+                          <div class="m-mega-banner__conntent">
+                            <h4 class="m-mega-banner__title m:text-black">{{ banner_title }}</h4>
+                            <p class="m-mega-banner__description">{{ banner_desc }}</p>
+                          </div>
+                          {% if banner_link != blank and banner_button_text != blank %}
+                            <a href="{{ banner_link }}" class="m-mega-banner__button m:text-black m-button m-button--link">{{ banner_button_text }}</a>
+                          {% endif %}
+                        </div>
+                      </div>
+                    {% endif %}
+                  {% endcapture %}
+                {% when 'bloglist' %}
+                  {% capture block_type %}
+                      {% if block.settings.blog != blank %}
+                        <div class="m-mega-blog-list m-mixed-layout m-mixed-layout--mobile-scroll" style="--column-gap: 16px" data-id="{{ block.id }}">
+                          {% assign blog = blogs[block.settings.blog] %}
+                          <ul class="m-mega-blog-list__wrapper m-mixed-layout__inner">
+                            {% for article in blog.articles limit: 3 %}
+                              <li class="m:column m:w-6/12">
+                                <a href="{{ article.url }}" class="m-mega-article-card__image m:w-full">
+                                  {% render 'responsive-image',
+                                    image: article.image,
+                                    aspect_ratio: '16/9',
+                                  %}
+                                </a>
+                                <div class="m-mega-article-card__content">
+                                  {% if article.tags != blank %}
+                                    <span class="m-mega-article-card__tag">{{ article.tags[0] }}</span>
+                                  {% endif %}
+                                  <a href="{{ article.url }}" class="m-mega-article-card__title">{{ article.title }}</a>
+                                </div>
+                              </li>
+                            {% endfor %}
+                          </ul>
+                        </div>
+                      {% endif %}
+                    {% endcapture %}
+                {% when 'product-list' %}
+                  {% assign collection = block.settings.collection %}
+                  {% if collection != blank %}
+                    {% capture block_type %}
+                      {{ 'component-product-card.css' | asset_url | stylesheet_tag }}
+                      <div class="m-megamenu-mobile__products m-mixed-layout m-mixed-layout--mobile-scroll" style="--column-gap: 16px" data-id="{{ block.id }}">
+                        {%- assign collection = collections[block.settings.collection] -%}
+                        <div class="m-mixed-layout__inner">
+                          {% for product in collection.products limit: block.settings.limit %}
+                          {%- assign image_ratio = product.featured_image.aspect_ratio | default: '1/1' -%}
+                            <div class="m:column m:w-1/2">
+                              <div class="m-product-card m-product-card--style-1">
+                                <div class="m-product-card__media">
+                                  <a class="m-product-card__link m:block m:w-full" href="{{ product.url }}" aria-label="{{ product.title | default: forloop.index }}">
+                                    <div class="m-product-card__main-image">
+                                      {% render 'responsive-image',
+                                        image: product.featured_image,
+                                        aspect_ratio: image_ratio,
+                                        sizes: '400px'
+                                      %}
+                                    </div>
+                                  </a>
+                                </div>
+                                <div class="m-product-card__content m:text-left">
+                                  <div class="m-product-card__info">
+                                    <h3 class="m-product-card__title">
+                                      <a href="{{ product.url }}" class="m-product-card__name">
+                                        {{ product.title }}
+                                      </a>
+                                    </h3>
+                                    <div class="m-product-card__price">
+                                      {% render 'product-prices', product: product, is_product_card: true %}
+                                    </div>
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                          {% endfor %}
+                        </div>
+                      </div>
+                    {% endcapture %}
+                  {% endif %}
+                {% when 'collection-list' %}
+                  {% liquid
+                    assign collection_ids = 'collection_1,collection_2,collection_3,collection_4,collection_5,collection_6' | split: ','
+                    assign content_empty = true
+
+                    for collection_id in collection_ids
+                      if block.settings[collection_id] != blank
+                        assign content_empty = false
+                      endif
+                    endfor
+                  %}
+                  {% capture block_type %}
+                    {% unless content_empty %}
+                      {{ 'component-collection-card.css' | asset_url | stylesheet_tag }}
+                      <div class="m-megamenu-mobile__collections m-mixed-layout m-mixed-layout--mobile-scroll" style="--column-gap: 16px" data-id="{{ block.id }}">
+                        <div class="m-mixed-layout__inner">
+                          {% for collection_id in collection_ids %}
+                            {% liquid
+                              if block.settings[collection_id] == blank
+                                continue
+                              endif
+                              assign collection_handle = block.settings[collection_id]
+                              assign collection = collections[collection_handle]
+                              assign collection_image = collection.image
+                              assign image_id = 'image_' | append: forloop.index
+
+                              if block.settings[image_id] != blank
+                                assign collection_image = block.settings[image_id]
+                              endif
+
+                              assign all_products_count = collection.all_products_count
+                            %}
+                            <div class="m:column m:w-6/12">
+                              <div class="m-collection-card m-collection-card--standard m-collection-card--hover-scaling-up">
+                                <div class="m-collection-card__inner">
+                                  <a href="{{ collection.url | default: "#" }}" class="m-collection-card__image m:block m:w-full">
+                                    {% if collection_image != blank %}
+                                      {% render 'responsive-image', image: collection_image, image_class: 'm:w-full', aspect_ratio: aspect_ratio %}
+                                    {% else %}
+                                      <div style="--aspect-ratio: 1/1;">
+                                        {% capture current %}{% cycle 1, 2, 3, 4, 5, 6 %}{% endcapture %}
+                                        {{ 'collection-' | append: current | placeholder_svg_tag: 'm-placeholder-svg m:w-full m:h-full m:object-cover' }}
+                                      </div>
+                                    {% endif %}
+                                  </a>
+                                  <div class="m-collection-card__info m:text-left">
+                                    <h3 class="m-collection-card__title">
+                                      <a href="{{ collection.url | default: "#" }}" class="m-collection-card__link m:block">
+                                        {{ title | default: collection.title }}
+                                        <sup>{{ all_products_count }}</sup>
+                                      </a>
+                                    </h3>
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                          {% endfor %}
+                        </div>
+                      </div>
+                    {% endunless %}
+                  {% endcapture %}
+                {% when 'custom_html' %}
+                  {% capture block_type %}
+                    {% if block.settings.html != blank %}
+                      <div class="m-mega-html m:text-black">
+                        {{ block.settings.html }}
+                      </div>
+                    {% endif %}
+                  {% endcapture %}
+                {% else %}
+                  {%- capture block_type -%}
+                  {%- endcapture -%}
+              {% endcase %}
+            {% endif %}
+          {% endfor %}
+          {% if link.links != blank %}
+            <li class="m-menu-mobile__item" data-url="{{ link.url }}" data-index="{{ forloop.index0 }}">
+              <a
+                href="{{ link.url }}"
+                class="m-menu-mobile__link"
+                {% if link.url contains '#' %}
+                  data-toggle-submenu="1"
+                {% endif %}
+              >
+                <span>{{ link.title }}</span>
+              </a>
+              <span class="m-menu-mobile__toggle-button" data-toggle-submenu="1">
+                <svg fill="currentColor" stroke="currentColor" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 512">
+                  <path d="M17.525 36.465l-7.071 7.07c-4.686 4.686-4.686 12.284 0 16.971L205.947 256 10.454 451.494c-4.686 4.686-4.686 12.284 0 16.971l7.071 7.07c4.686 4.686 12.284 4.686 16.97 0l211.051-211.05c4.686-4.686 4.686-12.284 0-16.971L34.495 36.465c-4.686-4.687-12.284-4.687-16.97 0z"/>
+                </svg>
+              </span>
+              <div class="m-megamenu-mobile m-megamenu-mobile--level-1">
+                <div class="m-megamenu-mobile__wrapper">
+                  <button class="m-menu-mobile__back-button" data-level="1">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 16 17">
+                      <path fill="currentColor" d="M8.12109 15.9141c-.21093.1875-.41015.1875-.59765 0L.175781 8.53125c-.210937-.1875-.210937-.375 0-.5625L7.52344.585938c.1875-.1875.38672-.1875.59765 0l.70313.703122c.1875.1875.1875.38672 0 .59766L3.375 7.33594h11.9883c.2812 0 .4219.14062.4219.42187v.98438c0 .28125-.1407.42187-.4219.42187H3.375l5.44922 5.44924c.1875.2109.1875.4101 0 .5976l-.70313.7032z"/>
+                    </svg>
+                    <span>{{ link.title }}</span>
+                  </button>
+                  <ul class="m-submenu-mobile">
+                    {% for child in link.links %}
+                      <li class="m-menu-mobile__item" data-url="{{ link.url }}">
+                        <a
+                          href="{{ child.url }}"
+                          class="m-menu-mobile__link"
+                          {% if child.url contains '#' %}
+                            data-toggle-submenu="2"
+                          {% endif %}
+                        >
+                          <span>{{ child.title }}</span>
+                        </a>
+                        {% if child.links != blank %}
+                          <span class="m-menu-mobile__toggle-button" data-toggle-submenu="2">
+                            <svg
+                              fill="currentColor"
+                              stroke="currentColor"
+                              xmlns="http://www.w3.org/2000/svg"
+                              viewBox="0 0 256 512"
+                            >
+                              <path d="M17.525 36.465l-7.071 7.07c-4.686 4.686-4.686 12.284 0 16.971L205.947 256 10.454 451.494c-4.686 4.686-4.686 12.284 0 16.971l7.071 7.07c4.686 4.686 12.284 4.686 16.97 0l211.051-211.05c4.686-4.686 4.686-12.284 0-16.971L34.495 36.465c-4.686-4.687-12.284-4.687-16.97 0z"/>
+                            </svg>
+                          </span>
+                          <div class="m-megamenu-mobile m-megamenu-mobile--level-2">
+                            <div class="m-megamenu-mobile__wrapper">
+                              <button class="m-menu-mobile__back-button" data-level="2">
+                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 16 17">
+                                  <path fill="currentColor" d="M8.12109 15.9141c-.21093.1875-.41015.1875-.59765 0L.175781 8.53125c-.210937-.1875-.210937-.375 0-.5625L7.52344.585938c.1875-.1875.38672-.1875.59765 0l.70313.703122c.1875.1875.1875.38672 0 .59766L3.375 7.33594h11.9883c.2812 0 .4219.14062.4219.42187v.98438c0 .28125-.1407.42187-.4219.42187H3.375l5.44922 5.44924c.1875.2109.1875.4101 0 .5976l-.70313.7032z"/>
+                                </svg>
+                                <span>{{ child.title }}</span>
+                              </button>
+                              <ul class="m-submenu-mobile">
+                                {% render 'mega-menu-link' for child.links as link %}
+                              </ul>
+                            </div>
+                          </div>
+                        {% endif %}
+                      </li>
+                    {% endfor %}
+                  </ul>
+                  {% if has_mega_item == true and block_type != blank %}
+                    <div class="m-megamenu-mobile__block">
+                      {{ block_type }}
+                    </div>
+                  {% endif %}
+                </div>
+              </div>
+            </li>
+          {% else %}
+            {% render 'mega-menu-link' with link as link, has_mega_item: has_mega_item, block_type: block_type %}
+          {% endif %}
+        {% endfor %}
+      </ul>
+      {% render 'mega-menu-customer', section: section %}
+    </div>
+  </div>
+</div>
